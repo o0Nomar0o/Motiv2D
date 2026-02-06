@@ -27,7 +27,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23' # Reliable version for Wails v2
+          go-version: '1.23' # Using stable 1.23 for CI reliability
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -41,15 +41,26 @@ jobs:
       - name: Build Windows
         if: matrix.os == 'windows-latest'
         run: |
+          # -nsis: creates installer
+          # -webview2 embed: ensures it launches even if user has a broken webview
           wails build -platform windows/amd64 -nsis -clean -webview2 embed
 
       - name: Prepare Windows Artifact
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          # Finds the installer regardless of its specific name and renames it
-          $file = Get-ChildItem -Path build/bin/*-installer.exe | Select-Object -First 1
-          Move-Item -Path $file.FullName -Destination "./${{ matrix.artifact }}"
+          # Debug: List everything so we can see what Wails called it
+          Get-ChildItem -Path build/bin -Recurse
+          
+          # Find ANY exe in the bin folder that looks like an installer
+          $installer = Get-ChildItem -Path build/bin/*.exe | Where-Object { $_.Name -like "*installer*" -or $_.Name -like "*setup*" } | Select-Object -First 1
+          
+          if ($null -eq $installer) {
+            # Fallback: Just grab the biggest EXE in there
+            $installer = Get-ChildItem -Path build/bin/*.exe | Sort-Object Length -Descending | Select-Object -First 1
+          }
+          
+          Copy-Item -Path $installer.FullName -Destination "./${{ matrix.artifact }}"
 
       # MACOS BUILD
       - name: Build MacOS
@@ -60,10 +71,10 @@ jobs:
       - name: Create MacOS DMG
         if: matrix.os == 'macos-latest'
         run: |
-          # You cannot upload a .app folder to GitHub. It must be a single file.
-          # A DMG is the professional way to package a .app for Mac.
+          # A .app is a FOLDER. You cannot upload a folder to GitHub.
+          # This creates a single .dmg file that contains your .app.
           cd build/bin
-          APP_NAME=$(ls -d *.app)
+          APP_NAME=$(ls -d *.app | head -n 1)
           hdiutil create -volname "Motiv2D" -srcfolder "$APP_NAME" -ov -format UDZO ../../${{ matrix.artifact }}
 
       - name: Upload Release
