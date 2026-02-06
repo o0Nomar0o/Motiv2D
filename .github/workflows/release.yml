@@ -1,4 +1,4 @@
-name: Build Wails Multi-Platform
+name: Build Wails Release
 
 on:
   push:
@@ -13,8 +13,10 @@ jobs:
         include:
           - os: windows-latest
             platform: windows/amd64
+            artifact: motiv2d-setup.exe
           - os: macos-latest
             platform: darwin/universal
+            artifact: motiv2d-mac.dmg
 
     runs-on: ${{ matrix.os }}
 
@@ -25,50 +27,48 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25.x'
+          go-version: '1.23' # Reliable version for Wails v2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install Wails CLI
+      - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
 
-      # WINDOWS BUILD PROCESS
-      - name: Build Windows Installer
+      # WINDOWS BUILD
+      - name: Build Windows
         if: matrix.os == 'windows-latest'
         run: |
-          wails build -platform windows/amd64 -nsis -clean
+          wails build -platform windows/amd64 -nsis -clean -webview2 embed
 
       - name: Prepare Windows Artifact
         if: matrix.os == 'windows-latest'
-        shell: bash
+        shell: pwsh
         run: |
-          # This finds whatever the installer is named and renames it cleanly
-          mv build/bin/*installer.exe motiv2d-setup.exe
+          # Finds the installer regardless of its specific name and renames it
+          $file = Get-ChildItem -Path build/bin/*-installer.exe | Select-Object -First 1
+          Move-Item -Path $file.FullName -Destination "./${{ matrix.artifact }}"
 
-      # MACOS BUILD PROCESS
-      - name: Build MacOS App
+      # MACOS BUILD
+      - name: Build MacOS
         if: matrix.os == 'macos-latest'
         run: |
           wails build -platform darwin/universal -clean
 
-      - name: Create MacOS DMG (Proper Format)
+      - name: Create MacOS DMG
         if: matrix.os == 'macos-latest'
         run: |
-          # hdiutil is the built-in Mac tool to create a "proper" installer image
-          # We take the .app folder and turn it into a single .dmg file
+          # You cannot upload a .app folder to GitHub. It must be a single file.
+          # A DMG is the professional way to package a .app for Mac.
           cd build/bin
           APP_NAME=$(ls -d *.app)
-          hdiutil create -volname "Motiv2D" -srcfolder "$APP_NAME" -ov -format UDZO ../../motiv2d-mac.dmg
+          hdiutil create -volname "Motiv2D" -srcfolder "$APP_NAME" -ov -format UDZO ../../${{ matrix.artifact }}
 
-      # FINAL RELEASE
-      - name: Release Artifacts
-        uses: softprops/action-gh-release@v1
+      - name: Upload Release
+        uses: softprops/action-gh-release@v2
         with:
-          files: |
-            motiv2d-setup.exe
-            motiv2d-mac.dmg
+          files: ${{ matrix.artifact }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
