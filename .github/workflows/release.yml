@@ -1,4 +1,4 @@
-name: Build Wails Release
+name: Independent Wails Build
 
 on:
   push:
@@ -7,29 +7,29 @@ on:
 
 jobs:
   build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
             platform: windows/amd64
-            artifact: motiv2d-setup.exe
+            artifact: motiv2d-windows.zip
           - os: macos-latest
-            platform: darwin/universal
-            artifact: motiv2d-mac.dmg
-
-    runs-on: ${{ matrix.os }}
+            platform: darwin/universal # Universal works on both Intel and M1/M2/M3
+            artifact: motiv2d-macos.zip
 
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23' # Using stable 1.23 for CI reliability
+          go-version: '1.23'
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -37,45 +37,30 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
 
-      # WINDOWS BUILD
+      # WINDOWS: Static Linking to avoid "Missing DLL" errors
       - name: Build Windows
-        if: matrix.os == 'windows-latest'
-        run: |
-          # -nsis: creates installer
-          # -webview2 embed: ensures it launches even if user has a broken webview
-          wails build -platform windows/amd64 -nsis -clean -webview2 embed
-
-      - name: Prepare Windows Artifact
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          # Debug: List everything so we can see what Wails called it
-          Get-ChildItem -Path build/bin -Recurse
+          # -trimpath makes the binary more portable
+          # -webview2 embed makes sure it doesn't need an external installer
+          wails build -platform windows/amd64 -clean -webview2 embed -ldflags "-s -w -H=windowsgui" -trimpath
           
-          # Find ANY exe in the bin folder that looks like an installer
-          $installer = Get-ChildItem -Path build/bin/*.exe | Where-Object { $_.Name -like "*installer*" -or $_.Name -like "*setup*" } | Select-Object -First 1
-          
-          if ($null -eq $installer) {
-            # Fallback: Just grab the biggest EXE in there
-            $installer = Get-ChildItem -Path build/bin/*.exe | Sort-Object Length -Descending | Select-Object -First 1
-          }
-          
-          Copy-Item -Path $installer.FullName -Destination "./${{ matrix.artifact }}"
+          cd build/bin
+          Compress-Archive -Path "motiv2d.exe" -DestinationPath "../../${{ matrix.artifact }}"
 
-      # MACOS BUILD
+      # MAC: Ad-hoc signing to prevent the "Damaged" error
       - name: Build MacOS
         if: matrix.os == 'macos-latest'
         run: |
-          wails build -platform darwin/universal -clean
-
-      - name: Create MacOS DMG
-        if: matrix.os == 'macos-latest'
-        run: |
-          # A .app is a FOLDER. You cannot upload a folder to GitHub.
-          # This creates a single .dmg file that contains your .app.
+          wails build -platform darwin/universal -clean -ldflags "-s -w"
+          
+          # This is the "Magic Fix" for Mac users. 
+          # It "Ad-hoc" signs the app so MacOS doesn't think it's corrupted.
           cd build/bin
-          APP_NAME=$(ls -d *.app | head -n 1)
-          hdiutil create -volname "Motiv2D" -srcfolder "$APP_NAME" -ov -format UDZO ../../${{ matrix.artifact }}
+          codesign --force --deep --sign - motiv2d.app
+          
+          zip -r ../../${{ matrix.artifact }} motiv2d.app
 
       - name: Upload Release
         uses: softprops/action-gh-release@v2
