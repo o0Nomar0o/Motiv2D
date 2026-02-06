@@ -47,21 +47,22 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev build-essential pkg-config
 
       - name: Build Wails App
+        # Removed -package. Standard build embeds assets by default.
         run: |
-          wails build -platform ${{ matrix.platform }} -clean -package
+          wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w"
 
       - name: Prepare Artifacts (Windows/Linux)
         if: matrix.os != 'macos-latest'
         shell: bash
         run: |
-          cp build/bin/* ./build/bin/output_file || true
-          # Find the actual binary and rename it for the release
-          mv build/bin/motiv2d* ${{ matrix.artifact_name }} || mv build/bin/*.exe ${{ matrix.artifact_name }}
+          # Wails outputs to build/bin. We find the file and move it to a clear name.
+          ls -R build/bin
+          cp build/bin/*.exe ${{ matrix.artifact_name }} || cp build/bin/motiv2d ${{ matrix.artifact_name }} || true
 
       - name: Prepare Artifacts (MacOS)
         if: matrix.os == 'macos-latest'
         run: |
-          # Mac .app is a folder, we MUST zip it or it breaks
+          # Mac .app is a folder. Zip is mandatory for GitHub Releases.
           cd build/bin
           zip -r ../../motiv2d-mac.zip *.app
 
