@@ -1,0 +1,29 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^1.0.1",
+    "@tsconfig/svelte": "^3.0.0",
+    "svelte": "^3.49.0",
+    "svelte-check": "^2.8.0",
+    "svelte-preprocess": "^4.10.7",
+    "tslib": "^2.4.0",
+    "typescript": "^4.6.4",
+    "vite": "^3.0.7"
+  },
+  "dependencies": {
+    "@esotericsoftware/spine-webgl": "4.1",
+    "@esotericsoftware/spine-webgl-4.0": "npm:@esotericsoftware/spine-webgl@4.0",
+    "@esotericsoftware/spine-webgl-4.2": "npm:@esotericsoftware/spine-webgl@4.2",
+    "gsap": "^3.14.2",
+    "snarkdown": "^2.0.0"
+  }
+}

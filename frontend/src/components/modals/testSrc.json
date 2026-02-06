@@ -1,0 +1,53 @@
+ const defaultTestSources = [
+    {
+      id: "bd2-test",
+      name: "Brown Dust 2 Assets",
+      active: true,
+      baseUrl:
+        "https://api.github.com/repos/o0Nomar0o/Brown-Dust-2-Asset/git/trees/master?recursive=1",
+      remoteRoot:
+        "https://raw.githubusercontent.com/o0Nomar0o/Brown-Dust-2-Asset/master/",
+      metadataUrl:
+        "https://raw.githubusercontent.com/o0Nomar0o/Brown-Dust-2-Asset/master/CharInfo.json",
+    },
+    {
+      id: "nikke-db",
+      name: "Nikke L2D Collection",
+      active: true,
+      baseUrl:
+        "https://api.github.com/repos/Nikke-db/Nikke-db.github.io/git/trees/main?recursive=1",
+      remoteRoot:
+        "https://raw.githubusercontent.com/Nikke-db/Nikke-db.github.io/main/",
+      metadataUrl: "", // No manifest, Go should fallback to folder names
+    },
+    {
+      id: "sh2",
+      name: "SanGuoZhiHuanXiangDaLu2 (SanHuan2)",
+      active: true,
+      baseUrl:
+        "https://api.github.com/repos/violet-wdream/GamesArchive/git/trees/main?recursive=1",
+      remoteRoot:
+        "https://raw.githubusercontent.com/violet-wdream/GamesArchive/main/",
+      folderPath: "SanGuoZhiHuanXiangDaLu2 (SanHuan2)/Spine", // We will use this in Go to filter
+    },
+    {
+      id: "sga",
+      name: "HuanXiangMingJiangLu (SanGuoAnother)",
+      active: true,
+      baseUrl:
+        "https://api.github.com/repos/violet-wdream/GamesArchive/git/trees/main?recursive=1",
+      remoteRoot:
+        "https://raw.githubusercontent.com/violet-wdream/GamesArchive/main/",
+      folderPath: "HuanXiangMingJiangLu (SanGuoAnother)/Spine",
+    },
+    {
+      id: "gcg2",
+      name: "GirlCafeGun2",
+      active: true,
+      baseUrl:
+        "https://api.github.com/repos/violet-wdream/GamesArchive/git/trees/main?recursive=1",
+      remoteRoot:
+        "https://raw.githubusercontent.com/violet-wdream/GamesArchive/main/",
+      folderPath: "GirlCafeGun2 (ShuangShengShiJie)/Spine/2d animation",
+    },
+  ];

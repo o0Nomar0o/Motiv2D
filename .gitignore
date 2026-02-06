@@ -1,0 +1,21 @@
+build/bin
+node_modules
+frontend/dist
+
+# Wails Binaries
+build/bin/
+frontend/dist/
+frontend/node_modules/
+
+# Go Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
+

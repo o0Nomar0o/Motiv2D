@@ -1,0 +1,182 @@
+
+@font-face {
+  font-family:              "Softura";
+  font-weight:              normal;
+  font-style:               normal;
+  font-display:             swap;
+  src:                      local('Softura'),
+                            url('assets/fonts/Softura.woff2') format('woff2'),
+                            url('assets/fonts/Softura.otf') format('opentype');
+}
+
+
+@font-face {
+  font-family:              "Inter";
+  font-weight:              100 900;
+  font-style:               normal;
+  font-display:             swap;
+  src:                      url('assets/fonts/Inter/Inter-VariableFont_opsz.ttf') format('truetype-variations');
+}
+
+@font-face {
+  font-family:              "Bodoni Moda";
+  font-weight:              normal;
+  font-style:               normal;
+  font-display:             swap;
+  src:                      local(''),
+                            url('assets/fonts/Bodoni_Moda/Bodoni_Moda/BodoniModa-VariableFont_opsz.ttf') format('truetype-variations');
+}
+
+
+@font-face {
+  font-family:              'Fingard';
+  font-weight:              normal;
+  font-style:               normal;
+  font-display:             swap;
+  src:                      local('Fingard'),
+                            url('assets/fonts/Fingard.woff2') format('woff2'),
+                            url('assets/fonts/Fingard.otf') format('opentype');
+}
+
+@font-face {
+  font-family:              'MarklMono';
+  font-weight:              normal;
+  font-style:               normal;
+  font-display:             swap;
+  src:                      local('MarklMono'),
+                            url('assets/fonts/MarklMono.otf') format('woff2'),
+}
+
+@font-face {
+  font-family:              'MatrixMono';
+  font-weight:              normal;
+  font-style:               normal;
+  font-display:             swap;
+  src:                      local('Matrix_Mono'),
+                            url('assets/fonts/Matrix_Mono.ttf') format('opentype');
+}
+
+@font-face {
+  font-family:              'Rail';
+  font-weight:              normal;
+  font-style:               normal;
+  font-display:             swap;
+  src:                      local('LTRailway-Regular'),
+                            url('assets/fonts/LTRailway-Regular.otf') format('opentype');
+}
+
+@font-face {
+  font-family:              'XiaolaiMono';
+  font-weight:              normal;
+  font-style:               normal;
+  font-display:             swap;
+  src:                      local('XiaolaiMonoSC-Regular'),
+                            url('assets/fonts/xiaolai/XiaolaiMonoSC-Regular.ttf') format('opentype');
+}
+
+@font-face {
+  font-family:              'XiaolaiReg';
+  font-weight:              normal;
+  font-style:               normal;
+  font-display:             swap;
+  src:                      local('XiaolaiSC-Regular'),
+                            url('assets/fonts/xiaolai/XiaolaiSC-Regular.ttf') format('opentype');
+}
+
+@font-face {
+  font-family:              'FliegeReg';
+  font-weight:              normal;
+  font-style:               normal;
+  font-display:             swap;
+  src:                      local('FliegeMono-Regular'),
+                            url('assets/fonts/FliegeMono/FliegeMono-Regular.otf') format('opentype');
+}
+
+@font-face {
+    font-family:            "Nunito";
+    font-style:             normal;
+    font-weight:            400;
+    src:                    local(""),
+                            url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
+}
+
+/* html, body, #app {
+  background: transparent !important;
+} */
+
+
+:root {
+    /* Colors */
+    --bg-window:          #080708;           
+    --bg-sidebar:           transparent;         
+    --bg-card:            #1e1e1e;             
+    --accent:             #007aff;  
+    --accent-2:           #ff8500;  
+    --bg-container:       #1B2223;  
+
+    /* Text */    
+    --text-main:          #ffffff;
+    --text-muted:         #888888;
+
+    /* Borders & Divider    s */
+    --border-color:       rgba(255, 255, 255, 0.1);
+    --border-radius:        12px;
+
+    /* Dimensions */    
+    --drag-height:          38px;
+    --sidebar-width:        240px;
+}
+
+html {
+    background-color:       var(--bg-window);
+    color:                  var(--text-main);
+    overscroll-behavior:    none;
+    height:                 100%;
+    user-select:            none;
+    -webkit-user-select:    none;
+}
+
+body {
+    margin:                 0;
+    padding:                0;
+    font-family:            "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow:               hidden;               
+    height:                 100%;
+    
+}
+
+h1{
+    font-family:            "Rail";
+
+}
+
+
+/* #app {
+    height:                 100vh;
+    display:                flex;
+    flex-direction:         column;
+} */
+
+.unselectable {
+    user-select:            none;
+    -webkit-user-select:    none;
+}   
+
+/*OG*/
+
+
+/* body {
+    margin:                 0;
+    color:                white;
+    font-family:            "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+                            "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+                            sans-serif;
+} */
+
+
+#app {
+    height:                 100vh;
+    /* text-align:             center; */
+}
+
