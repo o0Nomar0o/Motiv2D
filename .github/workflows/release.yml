@@ -7,8 +7,10 @@ on:
 
 jobs:
   build:
+    name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -19,40 +21,63 @@ jobs:
             artifact: motiv2d-macos.zip
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install Wails
+      - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
 
-      # WINDOWS FIX: Embed WebView2 so it doesn't rely on the user's system version
+      # --- CRITICAL STEP: Build the Frontend first ---
+      - name: Build Frontend Assets
+        run: |
+          cd frontend
+          npm install
+          npm run build
+          
+      # --- DEBUG: Verify index.html exists before Wails starts ---
+      - name: Verify Frontend Dist
+        shell: bash
+        run: |
+          if [ -f "frontend/dist/index.html" ]; then
+            echo "✅ index.html found. Ready to embed."
+          else
+            echo "❌ ERROR: frontend/dist/index.html NOT FOUND!"
+            ls -R frontend
+            exit 1
+          fi
+
+      # --- WINDOWS BUILD ---
       - name: Build Windows
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
+          # Webview2 embed is the safest way to ensure it opens on all Win11/10
           wails build -platform windows/amd64 -clean -webview2 embed -ldflags "-s -w -H=windowsgui"
           Compress-Archive -Path "build/bin/motiv2d.exe" -DestinationPath "./${{ matrix.artifact }}"
 
-      # MACOS FIX: Ad-hoc sign the app so it's not "Damaged"
+      # --- MACOS BUILD ---
       - name: Build MacOS
         if: matrix.os == 'macos-latest'
         run: |
           wails build -platform darwin/universal -clean -ldflags "-s -w"
           
-          # This is the crucial step you were missing:
-          # It signs the app with a 'null' identity so MacOS treats it as 
-          # an 'Unknown Developer' app instead of a 'Damaged' app.
+          # Ad-hoc sign to prevent the "Damaged" error
           cd build/bin
           codesign --force --deep --sign - motiv2d.app
           
           zip -r ../../${{ matrix.artifact }} motiv2d.app
 
-      - name: Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.artifact }}
