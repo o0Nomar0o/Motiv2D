@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/wailsapp/wails/v2"
@@ -37,10 +38,13 @@ func main() {
 	remoteHandler := remote.NewRemoteHandler()
 	updateService := update.NewUpdaterService()
 
+	isWindows := runtime.GOOS == "windows"
+
 	err := wails.Run(&options.App{
 		Title:     "MOTIV.2D",
 		MinWidth:  1000,
 		MinHeight: 600,
+		Frameless: isWindows,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -44,8 +44,12 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            # THIS ENABLES TAHOE RADIUS: Targets the modern macOS SDK
+            # 1. FORCE THE DEPLOYMENT TARGET FOR THE LINKER
             export MACOSX_DEPLOYMENT_TARGET=14.0
+            
+            # 2. OVERWRITE THE PLIST MANUALLY TO ENSURE 10.13 IS GONE
+            sed -i '' 's/10.13.0/14.0.0/g' build/darwin/Info.plist
+            
             wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w"
           else
             wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w" -webview2 embed
@@ -55,9 +59,8 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           cd build/bin
-          # Ensure execution bits for the modern Tahoe binary
           chmod +x motiv2d.app/Contents/MacOS/motiv2d
-          # Ad-hoc sign is required for the OS to respect the new Info.plist radius
+          # Deep signing is required for Tahoe to accept the new corner radius
           codesign --force --deep --sign - motiv2d.app
           zip -r ../../${{ matrix.artifact }} motiv2d.app
 
