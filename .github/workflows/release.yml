@@ -1,4 +1,4 @@
-name: Wails Production Build
+name: Wails Build
 
 on:
   push:
@@ -7,10 +7,8 @@ on:
 
 jobs:
   build:
-    name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         include:
           - os: windows-latest
@@ -21,8 +19,7 @@ jobs:
             artifact: motiv2d-macos.zip
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -34,40 +31,35 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Wails CLI
+      - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
 
-      # --- THIS IS THE MISSING FIX ---
+      # THIS IS REQUIRED so go:embed has files to grab
       - name: Build Frontend
         run: |
           cd frontend
           npm install
-          npm run build  # This creates the dist/index.html Wails needs
-          
-      # --- WINDOWS BUILD ---
-      - name: Build Windows
+          npm run build
+
+      - name: Build Wails
+        run: |
+          wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w" -webview2 embed
+
+      - name: MacOS Signing
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd build/bin
+          # Ad-hoc sign so the app isn't "Damaged"
+          codesign --force --deep --sign - motiv2d.app
+          zip -r ../../${{ matrix.artifact }} motiv2d.app
+
+      - name: Windows Zip
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          wails build -platform windows/amd64 -clean -webview2 embed -ldflags "-s -w -H=windowsgui"
           Compress-Archive -Path "build/bin/motiv2d.exe" -DestinationPath "./${{ matrix.artifact }}"
 
-      # --- MACOS BUILD ---
-      - name: Build MacOS
-        if: matrix.os == 'macos-latest'
-        run: |
-          wails build -platform darwin/universal -clean -ldflags "-s -w"
-          
-          # 1. Ensure the binary is executable inside the bundle
-          chmod +x build/bin/motiv2d.app/Contents/MacOS/motiv2d
-          
-          # 2. Ad-hoc sign to prevent "Damaged" error
-          cd build/bin
-          codesign --force --deep --sign - motiv2d.app
-          
-          zip -r ../../${{ matrix.artifact }} motiv2d.app
-
-      - name: Create Release
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.artifact }}
