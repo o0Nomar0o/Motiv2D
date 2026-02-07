@@ -34,7 +34,6 @@ jobs:
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
 
-      # THIS IS REQUIRED so go:embed has files to grab
       - name: Build Frontend
         run: |
           cd frontend
@@ -42,14 +41,23 @@ jobs:
           npm run build
 
       - name: Build Wails
+        shell: bash
         run: |
-          wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w" -webview2 embed
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            # THIS ENABLES TAHOE RADIUS: Targets the modern macOS SDK
+            export MACOSX_DEPLOYMENT_TARGET=14.0
+            wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w"
+          else
+            wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w" -webview2 embed
+          fi
 
-      - name: MacOS Signing
+      - name: MacOS Signing & Packaging
         if: matrix.os == 'macos-latest'
         run: |
           cd build/bin
-          # Ad-hoc sign so the app isn't "Damaged"
+          # Ensure execution bits for the modern Tahoe binary
+          chmod +x motiv2d.app/Contents/MacOS/motiv2d
+          # Ad-hoc sign is required for the OS to respect the new Info.plist radius
           codesign --force --deep --sign - motiv2d.app
           zip -r ../../${{ matrix.artifact }} motiv2d.app
 

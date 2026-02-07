@@ -151,6 +151,15 @@ h1{
 
 }
 
+* {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important; 
+}
+
+:root {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
 
 /* #app {
     height:                 100vh;
