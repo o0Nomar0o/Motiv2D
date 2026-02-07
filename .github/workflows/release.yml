@@ -37,31 +37,18 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
 
-      # --- CRITICAL STEP: Build the Frontend first ---
-      - name: Build Frontend Assets
+      # --- THIS IS THE MISSING FIX ---
+      - name: Build Frontend
         run: |
           cd frontend
           npm install
-          npm run build
+          npm run build  # This creates the dist/index.html Wails needs
           
-      # --- DEBUG: Verify index.html exists before Wails starts ---
-      - name: Verify Frontend Dist
-        shell: bash
-        run: |
-          if [ -f "frontend/dist/index.html" ]; then
-            echo "✅ index.html found. Ready to embed."
-          else
-            echo "❌ ERROR: frontend/dist/index.html NOT FOUND!"
-            ls -R frontend
-            exit 1
-          fi
-
       # --- WINDOWS BUILD ---
       - name: Build Windows
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          # Webview2 embed is the safest way to ensure it opens on all Win11/10
           wails build -platform windows/amd64 -clean -webview2 embed -ldflags "-s -w -H=windowsgui"
           Compress-Archive -Path "build/bin/motiv2d.exe" -DestinationPath "./${{ matrix.artifact }}"
 
@@ -71,13 +58,16 @@ jobs:
         run: |
           wails build -platform darwin/universal -clean -ldflags "-s -w"
           
-          # Ad-hoc sign to prevent the "Damaged" error
+          # 1. Ensure the binary is executable inside the bundle
+          chmod +x build/bin/motiv2d.app/Contents/MacOS/motiv2d
+          
+          # 2. Ad-hoc sign to prevent "Damaged" error
           cd build/bin
           codesign --force --deep --sign - motiv2d.app
           
           zip -r ../../${{ matrix.artifact }} motiv2d.app
 
-      - name: Create GitHub Release
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.artifact }}
