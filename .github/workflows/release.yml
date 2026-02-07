@@ -1,4 +1,4 @@
-name: Independent Wails Build
+name: Wails Production Build
 
 on:
   push:
@@ -7,62 +7,52 @@ on:
 
 jobs:
   build:
-    name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             platform: windows/amd64
             artifact: motiv2d-windows.zip
           - os: macos-latest
-            platform: darwin/universal # Universal works on both Intel and M1/M2/M3
+            platform: darwin/universal
             artifact: motiv2d-macos.zip
 
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
 
-      # WINDOWS: Static Linking to avoid "Missing DLL" errors
+      # WINDOWS FIX: Embed WebView2 so it doesn't rely on the user's system version
       - name: Build Windows
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          # -trimpath makes the binary more portable
-          # -webview2 embed makes sure it doesn't need an external installer
-          wails build -platform windows/amd64 -clean -webview2 embed -ldflags "-s -w -H=windowsgui" -trimpath
-          
-          cd build/bin
-          Compress-Archive -Path "motiv2d.exe" -DestinationPath "../../${{ matrix.artifact }}"
+          wails build -platform windows/amd64 -clean -webview2 embed -ldflags "-s -w -H=windowsgui"
+          Compress-Archive -Path "build/bin/motiv2d.exe" -DestinationPath "./${{ matrix.artifact }}"
 
-      # MAC: Ad-hoc signing to prevent the "Damaged" error
+      # MACOS FIX: Ad-hoc sign the app so it's not "Damaged"
       - name: Build MacOS
         if: matrix.os == 'macos-latest'
         run: |
           wails build -platform darwin/universal -clean -ldflags "-s -w"
           
-          # This is the "Magic Fix" for Mac users. 
-          # It "Ad-hoc" signs the app so MacOS doesn't think it's corrupted.
+          # This is the crucial step you were missing:
+          # It signs the app with a 'null' identity so MacOS treats it as 
+          # an 'Unknown Developer' app instead of a 'Damaged' app.
           cd build/bin
           codesign --force --deep --sign - motiv2d.app
           
           zip -r ../../${{ matrix.artifact }} motiv2d.app
 
-      - name: Upload Release
+      - name: Release
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ matrix.artifact }}
