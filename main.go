@@ -105,12 +105,11 @@ func main() {
 			WebviewIsTransparent: true,
 		},
 		Windows: &windows.Options{
-			WebviewIsTransparent:  true,
-			WindowIsTranslucent:   true,
-			BackdropType:          windows.Mica,
-			DisableWindowIcon:     true,
-			EnableFramelessBorder: true,
-			Frameless:             true,
+			WebviewIsTransparent: true,
+			WindowIsTranslucent:  true,
+			BackdropType:         windows.Mica,
+			DisableWindowIcon:    true,
+			DisableFramelessWindowDecorations: false,
 		},
 	})
 
