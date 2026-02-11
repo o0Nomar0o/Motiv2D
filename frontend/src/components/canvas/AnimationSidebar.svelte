@@ -713,7 +713,6 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Redesigned Liquid Glass Picker Button */
   .picker-btn {
     width: 32px;
     height: 32px;
@@ -746,7 +745,6 @@
       0 4px 15px rgba(0, 0, 0, 0.2);
   }
 
-  /* Icon inside the glass */
   .picker-btn .icon-mask {
     width: 16px !important;
     height: 16px !important;
@@ -761,7 +759,6 @@
     filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
   }
 
-  /* Subsurface sheen effect */
   .picker-btn::after {
     content: "";
     position: absolute;
@@ -801,7 +798,7 @@
   }
 
   .pma-toggle.active {
-    background: rgba(0, 255, 150, 0.1); /* Subtle green tint */
+    background: rgba(0, 255, 150, 0.1);
     border-color: rgba(0, 255, 150, 0.3);
     color: #00ff96;
   }
@@ -1008,10 +1005,10 @@
     width: 100%;
     text-align: center;
     flex-shrink: 0;
-    width: 32px; /* Fixed width forced to fit roughly 3 chars */
+    width: 32px;
     display: block;
-    white-space: nowrap; /* Prevents text from wrapping to next line */
-    overflow: hidden; /* Hides the 'KET' part */
+    white-space: nowrap; 
+    overflow: hidden;
     text-align: center;
   }
 

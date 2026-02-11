@@ -27,6 +27,8 @@ export namespace common {
 	    hasSkel: boolean;
 	    hasAtlas: boolean;
 	    defaultPMA: boolean;
+	    isMultiPart: boolean;
+	    additionalParts: SpineMetadata[];
 	    isRemote: boolean;
 	    sourceUrl: string;
 	    sourceName: string;
@@ -47,6 +49,8 @@ export namespace common {
 	        this.hasSkel = source["hasSkel"];
 	        this.hasAtlas = source["hasAtlas"];
 	        this.defaultPMA = source["defaultPMA"];
+	        this.isMultiPart = source["isMultiPart"];
+	        this.additionalParts = this.convertValues(source["additionalParts"], SpineMetadata);
 	        this.isRemote = source["isRemote"];
 	        this.sourceUrl = source["sourceUrl"];
 	        this.sourceName = source["sourceName"];

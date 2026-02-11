@@ -6,6 +6,14 @@ export function GroupFilesIntoAssets(arg1) {
   return window['go']['common']['SpineCommons']['GroupFilesIntoAssets'](arg1);
 }
 
+export function ProcessSingleAsset(arg1) {
+  return window['go']['common']['SpineCommons']['ProcessSingleAsset'](arg1);
+}
+
+export function RecursiveImport() {
+  return window['go']['common']['SpineCommons']['RecursiveImport']();
+}
+
 export function SelectFiles() {
   return window['go']['common']['SpineCommons']['SelectFiles']();
 }

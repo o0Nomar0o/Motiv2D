@@ -44,13 +44,21 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            # 1. FORCE THE DEPLOYMENT TARGET FOR THE LINKER
-            export MACOSX_DEPLOYMENT_TARGET=14.0
+            # 1. Set the linker target so the binary itself knows it's modern
+            export MACOSX_DEPLOYMENT_TARGET=11.0
             
-            # 2. OVERWRITE THE PLIST MANUALLY TO ENSURE 10.13 IS GONE
-            sed -i '' 's/10.13.0/14.0.0/g' build/darwin/Info.plist
-            
+            # 2. Run the build
             wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w"
+            
+            # 3. FORCE THE PLIST UPDATE inside the actual .app bundle
+            # This is the "magic" that enables rounded corners and new UI
+            PLIST_PATH="build/bin/motiv2d.app/Contents/Info.plist"
+            
+            plutil -replace LSMinimumSystemVersion -string "11.0.0" "$PLIST_PATH"
+            plutil -insert NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH" || \
+            plutil -replace NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH"
+            
+            echo "Final Info.plist updated for modern macOS appearance."
           else
             wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w" -webview2 embed
           fi

@@ -47,6 +47,9 @@ export interface SpineMetadata {
   hasAtlas: boolean;
   defaultPMA: boolean;
 
+  isMultiPart: boolean; 
+  additionalParts?: SpineMetadata[];
+
   isRemote?: boolean;    
   sourceName?: string;  
   sourceUrl?: string;

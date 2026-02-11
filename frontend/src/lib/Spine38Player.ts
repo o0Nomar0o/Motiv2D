@@ -67,65 +67,7 @@ export class Spine38Player {
     });
   }
 
-  // async load(asset: any, settings?: CharacterSessionState) {
-  // 
-  //   this.savedSettings = settings || null;
-  //   const atlasUrl = asset.atlasFile.url;
-  //   const skelUrl = asset.skelFile.url;
-
-  //   const decodedAtlasUrl = decodeURIComponent(atlasUrl);
-  // 
-  //   const directoryPath = decodedAtlasUrl.substring(
-  //     0,
-  //     decodedAtlasUrl.lastIndexOf("/") + 1,
-  //   );
-
-  //   this.assetManager.pathPrefix = "";
-  // 
-  //   if (asset.isBinary) this.assetManager.loadBinary(skelUrl);
-  //   else this.assetManager.loadText(skelUrl);
-  //   this.assetManager.loadText(atlasUrl);
-
-  //   const checkMetadata = () => {
-  // 
-  //     if (this.isDestroyed) return;
-
-  //     if (this.assetManager.isLoadingComplete()) {
-  //       const atlasText = this.assetManager.get(atlasUrl);
-  //       const skelRawData = this.assetManager.get(skelUrl);
-  // 
-  //       if (this.savedSettings && this.savedSettings.pma !== undefined) {
-  //         this.isPMA = this.savedSettings.pma;
-  //       } else {
-  //         // Fallback to auto-detection only if no settings exist
-  //         this.isPMA =
-  //           atlasText.includes("pma:true") || atlasText.includes("pma: true");
-  //       }
-  // 
-  //       const lines = atlasText.split(/\r\n|\r|\n/);
-  //       let pngsToLoad = 0;
-  // 
-  //       for (let line of lines) {
-  //         line = line.trim();
-  //         if (line.toLowerCase().endsWith(".png")) {
-  //           this.assetManager.loadTexture(directoryPath + line);
-  //           pngsToLoad++;
-  //         }
-  //       }
-  // 
-  //       if (pngsToLoad === 0) {
-  //         this.assetManager.loadTexture(atlasUrl.replace(".atlas", ".png"));
-  //       }
-  // 
-  //       this.waitForTextures(asset, atlasText, skelRawData);
-  //     } else {
-  //       this.requestId = requestAnimationFrame(checkMetadata);
-  //     }
-  //   };
-  //   checkMetadata();
-  // }
-
-  load(asset: any, settings?: CharacterSessionState) {
+  async  load(asset: any, settings?: CharacterSessionState) {
 
     this.savedSettings = settings || null;
     const atlasUrl = asset.atlasFile.url;

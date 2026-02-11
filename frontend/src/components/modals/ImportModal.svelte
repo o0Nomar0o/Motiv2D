@@ -6,6 +6,7 @@
     activeCharacter,
   } from "../../stores/appStore";
   import { fade, fly } from "svelte/transition";
+  import { onMount, onDestroy } from "svelte";
 
   // Assets
   import iconGlobe from "../../assets/images/globe.svg";
@@ -13,11 +14,16 @@
   import iconFolder from "../../assets/images/in-folder.svg";
   import iconUpload from "../../assets/images/out-folder.svg";
 
-  // Wails Binding
-  import { SelectFolder } from "../../../wailsjs/go/common/SpineCommons";
-  import { CheckSourceHealth } from "../../../wailsjs/go/remote/RemoteHandler";
   import RemoteSetting from "./RemoteSettings.svelte";
   import RemoteGallery from "./RemoteGallery.svelte";
+
+  // Wails Binding
+  import {
+    SelectFolder,
+    RecursiveImport,
+  } from "../../../wailsjs/go/common/SpineCommons";
+  import { CheckSourceHealth } from "../../../wailsjs/go/remote/RemoteHandler";
+  import { EventsOn } from "../../../wailsjs/runtime/runtime";
 
   export let isOpen = false;
 
@@ -50,7 +56,7 @@
         healthMap[src.id] = false;
       }
     }
-    healthMap = healthMap; // Trigger reactivity
+    healthMap = healthMap;
   }
 
   // Run health check when modal opens
@@ -64,7 +70,7 @@
       if (results && results.length > 0) {
         characterLibrary.update((existing) => {
           const newItems = results.filter(
-            (r) => !existing.some((e) => e.id === r.id)
+            (r) => !existing.some((e) => e.id === r.id),
           );
           if (newItems.length > 0) activeCharacter.set(newItems[0]);
           return [...existing, ...newItems];
@@ -73,6 +79,51 @@
       }
     } catch (err) {
       console.error("Failed to load folder:", err);
+    }
+  }
+
+  let isScanning = false;
+  let unsubscribe: () => void;
+
+  onMount(() => {
+    const unlisten = EventsOn("asset_discovered", (asset) => {
+      console.log("Asset found:", asset.id);
+
+      characterLibrary.update((existing) => {
+        if (existing.some((e) => e.id === asset.id)) return existing;
+
+        const newList = [...existing, asset];
+
+        activeCharacter.update((current) => {
+          if (!current) {
+            console.log("Auto-setting active character:", asset.id);
+            return asset;
+          }
+          return current;
+        });
+
+        return newList;
+      });
+    });
+
+    return () => unlisten();
+  });
+
+  onDestroy(() => {
+    if (unsubscribe) unsubscribe();
+  });
+
+  async function handleRecursiveLocalImport() {
+    try {
+      isScanning = true;
+      await RecursiveImport();
+      close();
+    } catch (err) {
+      console.error("Recursive scan failed:", err);
+    } finally {
+      // Note: In a production app, you'd wait for a "scan_complete"
+      // event from Go to set isScanning to false
+      isScanning = false;
     }
   }
 </script>
@@ -143,6 +194,25 @@
                     <div class="line-filler"></div>
                     <div class="action-zone">
                       <span class="mono-hint">IMPORT FOLDER</span>
+                      <div
+                        class="icon-mask sm arrow-icon"
+                        style="--icon: url({iconUpload})"
+                      ></div>
+                    </div>
+                  </button>
+
+                  <button
+                    class="minimal-import-row"
+                    on:click={handleRecursiveLocalImport}
+                  >
+                    <div
+                      class="icon-mask md folder-icon"
+                      style="--icon: url({iconFolder})"
+                    ></div>
+                    <span class="label">Local Storage</span>
+                    <div class="line-filler"></div>
+                    <div class="action-zone">
+                      <span class="mono-hint">RECURSIVE MPORT FOLDER</span>
                       <div
                         class="icon-mask sm arrow-icon"
                         style="--icon: url({iconUpload})"
@@ -258,11 +328,11 @@
     margin: 0;
   }
   .sources-list {
-    flex: 1; /* Take up all remaining vertical space */
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    overflow-y: auto; /* The actual scrollbar lives here */
+    overflow-y: auto;
   }
   .content-area > div {
     display: flex;
@@ -404,6 +474,11 @@
 
   .local-import-container {
     margin-bottom: 24px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
   }
   .minimal-import-row {
     width: 100%;
@@ -503,7 +578,7 @@
     min-height: 0;
   }
   .remote-gallery-container {
-    flex: 1; 
+    flex: 1;
     height: 100%;
     display: flex;
     flex-direction: column;

@@ -122,6 +122,7 @@
       spineUpdateSignal.update((n) => n + 1);
     }, 0);
   }
+  
   onDestroy(() => {
     if (currentPlayer) currentPlayer.destroy();
     // Cleanup both canvases

@@ -188,7 +188,7 @@ export class Spine4xPlayer {
     triggerSpineRefresh();
     this.updateCamera();
     this.render();
-    this.centerSkeleton();
+    // this.centerSkeleton();
   }
 
   private updateCamera() {

@@ -22,7 +22,7 @@
     "../../motiv2d/frontend/src/**/*.ts",
     "../../motiv2d/frontend/src/**/*.js",
     "../../motiv2d/frontend/src/**/*.svelte"
-, "../../motiv2d/frontend/src/assets/images/lock-open.svg", "../../motiv2d/frontend/src/assets/images/lock.svg", "../../motiv2d/frontend/src/assets/images/folder.svg"  ],
+, "../../motiv2d/frontend/src/assets/images/lock-open.svg", "../../motiv2d/frontend/src/assets/images/lock.svg", "../../motiv2d/frontend/src/assets/images/folder.svg", "src/components/canvas/palce.md"  ],
   "references": [
     {
       "path": "./tsconfig.node.json"

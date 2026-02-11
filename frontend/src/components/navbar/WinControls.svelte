@@ -18,16 +18,10 @@
   }
 </script>
 
-<button class="win-btn close" on:click={quit}>
-  <svg class="win-icon" viewBox="0 0 10 10"
-    ><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" /></svg
-  >
-</button>
-
 <div class="window-controls-win">
-  <button class="win-btn" on:click={minimize}>
-    <svg class="win-icon" viewBox="0 0 10 2"
-      ><path d="M1 1H9" stroke="currentColor" /></svg
+  <button class="win-btn close" on:click={quit}>
+    <svg class="win-icon" viewBox="0 0 10 10"
+      ><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" /></svg
     >
   </button>
 
@@ -44,28 +38,34 @@
     >
   </button>
 
+  <button class="win-btn" on:click={minimize}>
+    <svg class="win-icon" viewBox="0 0 10 2"
+      ><path d="M1 1H9" stroke="currentColor" /></svg
+    >
+  </button>
 </div>
 
 <style>
   .window-controls-win {
     display: flex;
-    gap: 4px;
     z-index: 9999;
   }
 
   .win-btn {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 6px; 
+    border: 1px solid rgba(255, 255, 255, 0.00);
+    border-radius: 6px;
     color: rgba(255, 255, 255, 0.4);
     cursor: pointer;
     backdrop-filter: blur(8px);
     transition: all 0.2s ease;
+            color: rgba(225, 225, 225, 0.77);
+
   }
 
   .win-btn:hover {
@@ -75,19 +75,14 @@
   }
 
   .win-btn.close:hover {
-    background: rgba(
-      232,
-      17,
-      35,
-      0.8
-    ); /* Windows "Close Red" but with glass alpha */
+    background: rgba(232, 17, 35, 0.8);
     color: white;
     border-color: transparent;
   }
 
   .win-icon {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     fill: none;
     stroke-width: 1.2;
   }

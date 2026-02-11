@@ -331,6 +331,8 @@
     flex: 1;
     overflow: hidden;
     position: relative;
+
+    /* contain-intrinsic-size: 1px 150px; */
   }
 
   .scroll-content {
