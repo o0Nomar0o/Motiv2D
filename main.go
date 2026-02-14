@@ -28,6 +28,8 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+var FramelessMode = "false"
+
 func main() {
 
 	app := NewApp()
@@ -39,12 +41,15 @@ func main() {
 	updateService := update.NewUpdaterService()
 
 	isWindows := runtime.GOOS == "windows"
+	isFrameless := isWindows && FramelessMode == "true"
 
 	err := wails.Run(&options.App{
+
 		Title:     "MOTIV.2D",
 		MinWidth:  1000,
 		MinHeight: 600,
-		Frameless: isWindows,
+		Frameless: isFrameless,
+		
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -80,10 +85,12 @@ func main() {
 				http.NotFound(w, r)
 			}),
 		},
+
 		BackgroundColour: theme.GetPreferredTheme(),
 		// BackgroundColour: &options.RGBA{
 		// 	R: 0, G: 0, B: 0, A: 0,
 		// },
+
 		OnStartup: func(ctx context.Context) {
 			app.startup(ctx)
 			fileService.Startup(ctx)
@@ -93,6 +100,7 @@ func main() {
 			remoteHandler.Startup(ctx)
 			updateService.Startup(ctx)
 		},
+
 		Bind: []interface{}{
 			app,
 			fileService,
@@ -102,12 +110,15 @@ func main() {
 			remoteHandler,
 			updateService,
 		},
+
 		Menu: app.makeMenu(),
+
 		Mac: &mac.Options{
 			TitleBar:             mac.TitleBarHiddenInset(),
 			Appearance:           mac.NSAppearanceNameDarkAqua,
 			WebviewIsTransparent: true,
 		},
+
 		Windows: &windows.Options{
 			WebviewIsTransparent: true,
 			WindowIsTranslucent:  true,

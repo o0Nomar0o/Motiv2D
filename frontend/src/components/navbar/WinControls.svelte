@@ -49,6 +49,7 @@
   .window-controls-win {
     display: flex;
     z-index: 9999;
+    padding-right: 8px;
   }
 
   .win-btn {
@@ -64,7 +65,7 @@
     cursor: pointer;
     backdrop-filter: blur(8px);
     transition: all 0.2s ease;
-            color: rgba(225, 225, 225, 0.77);
+    color: rgba(225, 225, 225, 0.77);
 
   }
 

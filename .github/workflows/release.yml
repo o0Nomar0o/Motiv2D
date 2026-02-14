@@ -44,23 +44,19 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            # 1. Set the linker target so the binary itself knows it's modern
             export MACOSX_DEPLOYMENT_TARGET=11.0
-            
-            # 2. Run the build
             wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w"
             
-            # 3. FORCE THE PLIST UPDATE inside the actual .app bundle
-            # This is the "magic" that enables rounded corners and new UI
             PLIST_PATH="build/bin/motiv2d.app/Contents/Info.plist"
-            
             plutil -replace LSMinimumSystemVersion -string "11.0.0" "$PLIST_PATH"
             plutil -insert NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH" || \
             plutil -replace NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH"
-            
-            echo "Final Info.plist updated for modern macOS appearance."
           else
-            wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w" -webview2 embed
+            # 1. Build Standard Windows version
+            wails build -platform ${{ matrix.platform }} -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed
+            
+            # 2. Build Frameless Windows version (Flipping the switch in main.go)
+            wails build -platform ${{ matrix.platform }} -o motiv2d-frameless.exe -ldflags "-s -w -X main.FramelessMode=true" -webview2 embed
           fi
 
       - name: MacOS Signing & Packaging
@@ -68,7 +64,6 @@ jobs:
         run: |
           cd build/bin
           chmod +x motiv2d.app/Contents/MacOS/motiv2d
-          # Deep signing is required for Tahoe to accept the new corner radius
           codesign --force --deep --sign - motiv2d.app
           zip -r ../../${{ matrix.artifact }} motiv2d.app
 
@@ -76,7 +71,8 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          Compress-Archive -Path "build/bin/motiv2d.exe" -DestinationPath "./${{ matrix.artifact }}"
+          # Zips both versions so the user has the choice
+          Compress-Archive -Path "build/bin/motiv2d-standard.exe", "build/bin/motiv2d-frameless.exe" -DestinationPath "./${{ matrix.artifact }}"
 
       - name: Release
         uses: softprops/action-gh-release@v2

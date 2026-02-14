@@ -612,7 +612,13 @@ export class Spine38Player {
     if (this.isPMA) {
       this.gl.blendFunc(this.gl.ONE, this.gl.ONE_MINUS_SRC_ALPHA);
     } else {
-      this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+      // this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+      this.gl.blendFuncSeparate(
+        this.gl.SRC_ALPHA, 
+        this.gl.ONE_MINUS_SRC_ALPHA, 
+        this.gl.ONE, 
+        this.gl.ONE_MINUS_SRC_ALPHA
+    );
     }
 
     //Draw
