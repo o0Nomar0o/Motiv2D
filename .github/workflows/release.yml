@@ -47,28 +47,30 @@ jobs:
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            # Ensure Tahoe/macOS 15+ compatibility
-            export MACOSX_DEPLOYMENT_TARGET=11.0
+            # 1. Bump deployment target to force modern SDK behavior (Tahoe/Liquid Glass)
+            export MACOSX_DEPLOYMENT_TARGET=14.0
             
             wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w"
             
-            # Injecting Tahoe/Modern API keys into Info.plist
+            # 2. Update Info.plist with Tahoe-specific modern UI keys
             PLIST_PATH="build/bin/motiv2d.app/Contents/Info.plist"
             
-            # Forces the rounded corner radius and modern window controls
+            # Modern versions and update cycle triggers the large border radius
             plutil -replace LSMinimumSystemVersion -string "11.0.0" "$PLIST_PATH"
             plutil -replace NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH"
-            
-            # Explicitly force DarkAqua appearance at the OS level
-            plutil -insert NSAppearanceName -string "NSAppearanceNameDarkAqua" "$PLIST_PATH" || \
             plutil -replace NSAppearanceName -string "NSAppearanceNameDarkAqua" "$PLIST_PATH"
             
-            echo "macOS build for ${{ matrix.platform }} completed with Tahoe appearance keys."
-          else
-            # 1. Build Standard Windows version
-            wails build -platform ${{ matrix.platform }} -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed
+            # Force modern update cycle and mimic SDK 26 for Tahoe features
+            plutil -insert NSApplicationUpdateCycleEnabled -bool true "$PLIST_PATH" || \
+            plutil -replace NSApplicationUpdateCycleEnabled -bool true "$PLIST_PATH"
             
-            # 2. Build Frameless Windows version (Injecting string via ldflags)
+            plutil -insert DTSDKName -string "macosx26.0" "$PLIST_PATH" || \
+            plutil -replace DTSDKName -string "macosx26.0" "$PLIST_PATH"
+
+            echo "macOS build for ${{ matrix.platform }} finalized with Tahoe API triggers."
+          else
+            # Windows logic remains unchanged (Standard + Frameless versions)
+            wails build -platform ${{ matrix.platform }} -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed
             wails build -platform ${{ matrix.platform }} -o motiv2d-frameless.exe -ldflags "-s -w -X main.FramelessMode=true" -webview2 embed
           fi
 
@@ -77,7 +79,7 @@ jobs:
         run: |
           cd build/bin
           chmod +x motiv2d.app/Contents/MacOS/motiv2d
-          # Deep sign is mandatory to validate the modified Info.plist on Tahoe
+          # Deep sign is mandatory so macOS doesn't reject our manual plist edits
           codesign --force --deep --sign - motiv2d.app
           zip -r ../../${{ matrix.artifact }} motiv2d.app
 
@@ -85,7 +87,6 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          # Zips both versions together for Windows users
           Compress-Archive -Path "build/bin/motiv2d-standard.exe", "build/bin/motiv2d-frameless.exe" -DestinationPath "./${{ matrix.artifact }}"
 
       - name: Release
