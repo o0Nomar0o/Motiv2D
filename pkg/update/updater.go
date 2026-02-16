@@ -10,16 +10,14 @@ import (
 	"io"
 	"net/http"
 	"runtime"
+	"time"
 
 	"github.com/blang/semver"
 	"github.com/minio/selfupdate"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-type CheckUpdateResponse struct {
-	Available bool       `json:"available"`
-	Info      UpdateInfo `json:"info"`
-}
+const CurrentAppVersion = "1.0.0"
 
 type UpdateInfo struct {
 	Version   string `json:"version"`
@@ -37,6 +35,11 @@ type Manifest struct {
 	} `json:"platforms"`
 }
 
+type CheckUpdateResponse struct {
+	Available bool       `json:"available"`
+	Info      UpdateInfo `json:"info"`
+}
+
 type UpdaterService struct {
 	ctx context.Context
 }
@@ -50,27 +53,46 @@ func (u *UpdaterService) Startup(ctx context.Context) {
 }
 
 func (u *UpdaterService) CheckForUpdates() (*CheckUpdateResponse, error) {
-	const CurrentVersion = "1.0.0"
-	const ManifestURL = "https://your-api.com/update.json"
 
-	resp, err := http.Get(ManifestURL)
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	const ManifestURL = "https://raw.githubusercontent.com/o0Nomar0o/Motiv2D/main/update.json"
+
+	resp, err := client.Get(ManifestURL)
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("network error: %w", err)
 	}
+
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("server error: %d", resp.StatusCode)
+	}
+
 	var m Manifest
+
 	if err := json.NewDecoder(resp.Body).Decode(&m); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse manifest: %w", err)
 	}
 
 	data, exists := m.Platforms[runtime.GOOS]
+
 	if !exists {
-		return nil, fmt.Errorf("platform %s not supported", runtime.GOOS)
+		return &CheckUpdateResponse{Available: false}, nil
 	}
 
-	vCurrent := semver.MustParse(CurrentVersion)
-	vRemote, _ := semver.Parse(m.Version)
+	vCurrent, err := semver.Parse(CurrentAppVersion)
+
+	if err != nil {
+		return nil, fmt.Errorf("internal version error: %w", err)
+	}
+
+	vRemote, err := semver.Parse(m.Version)
+
+	if err != nil {
+		return nil, fmt.Errorf("remote version error: %w", err)
+	}
 
 	return &CheckUpdateResponse{
 		Available: vRemote.GT(vCurrent),
@@ -84,14 +106,18 @@ func (u *UpdaterService) CheckForUpdates() (*CheckUpdateResponse, error) {
 }
 
 func (u *UpdaterService) ProcessUpdate(info UpdateInfo) error {
-	resp, err := http.Get(info.URL)
+
+	client := &http.Client{Timeout: 10 * time.Minute}
+	resp, err := client.Get(info.URL)
+
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to start download: %w", err)
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("server returned non-200 status: %d", resp.StatusCode)
+		return fmt.Errorf("download server returned %d", resp.StatusCode)
 	}
 
 	progressReader := &ProgressReader{
@@ -100,26 +126,33 @@ func (u *UpdaterService) ProcessUpdate(info UpdateInfo) error {
 		u:      u,
 	}
 
-	body, err := io.ReadAll(progressReader)
-	if err != nil {
-		return err
+	var buf bytes.Buffer
+	hasher := sha256.New()
+	teeReader := io.TeeReader(progressReader, &buf)
+
+	if _, err := io.Copy(hasher, teeReader); err != nil {
+		return fmt.Errorf("interrupted download: %w", err)
 	}
 
-	hash := sha256.Sum256(body)
-	if hex.EncodeToString(hash[:]) != info.Checksum {
-		return fmt.Errorf("checksum mismatch: security risk or corrupted download")
+	downloadedHash := hex.EncodeToString(hasher.Sum(nil))
+
+	if downloadedHash != info.Checksum {
+		return fmt.Errorf("security mismatch: expected %s, got %s", info.Checksum, downloadedHash)
 	}
 
-	err = selfupdate.Apply(bytes.NewReader(body), selfupdate.Options{})
+	err = selfupdate.Apply(bytes.NewReader(buf.Bytes()), selfupdate.Options{})
+
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to apply binary swap: %w", err)
 	}
 
 	wailsRuntime.MessageDialog(u.ctx, wailsRuntime.MessageDialogOptions{
 		Type:    wailsRuntime.InfoDialog,
-		Title:   "Update Complete",
-		Message: "The application has been updated successfully. Please restart to apply changes.",
+		Title:   "Update Successful",
+		Message: "The app has been updated. It will now restart to apply changes.",
 	})
+
+	wailsRuntime.Quit(u.ctx)
 
 	return nil
 }
