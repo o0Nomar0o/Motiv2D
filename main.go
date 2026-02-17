@@ -49,7 +49,7 @@ func main() {
 		MinWidth:  1000,
 		MinHeight: 600,
 		Frameless: isFrameless,
-		
+
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 			Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -117,14 +117,19 @@ func main() {
 		Mac: &mac.Options{
 			TitleBar:             mac.TitleBarHiddenInset(),
 			// Appearance:           mac.NSAppearanceNameDarkAqua,
+			// TitleBar: &mac.TitleBar{
+			// 	TitlebarAppearsTransparent: true,
+			// 	HideTitle:                  true,
+			// 	FullSizeContent:            true, // This is critical
+			// },
 			WebviewIsTransparent: true,
 		},
 
 		Windows: &windows.Options{
-			WebviewIsTransparent: true,
-			WindowIsTranslucent:  true,
-			BackdropType:         windows.Mica,
-			DisableWindowIcon:    true,
+			WebviewIsTransparent:              true,
+			WindowIsTranslucent:               true,
+			BackdropType:                      windows.Mica,
+			DisableWindowIcon:                 true,
 			DisableFramelessWindowDecorations: false,
 		},
 	})

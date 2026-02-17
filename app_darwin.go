@@ -12,5 +12,5 @@ import "C"
 import "context"
 
 func applyPlatformCode(ctx context.Context) {
-    C.SetTrafficLightPosition(16.0, -8.0)
+    C.SetTrafficLightPosition(16.0, 18.0)
 }
