@@ -26,6 +26,13 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
+func (a *App) onDomReady(ctx context.Context) {
+	// a.ctx = ctx
+    // C.SetTrafficLightPosition(20.0, -10.0)
+
+	applyPlatformCode(ctx)
+}
+
 // Greet returns a greeting for the given name
 func (a *App) Greet(name string) string {
 	fmt.Printf("CMD: %s\n", name)

@@ -93,6 +93,7 @@ func main() {
 
 		OnStartup: func(ctx context.Context) {
 			app.startup(ctx)
+			app.onDomReady(ctx)
 			fileService.Startup(ctx)
 			runtimeService.Startup(ctx)
 			spineService.Startup(ctx)
@@ -115,7 +116,7 @@ func main() {
 
 		Mac: &mac.Options{
 			TitleBar:             mac.TitleBarHiddenInset(),
-			Appearance:           mac.NSAppearanceNameDarkAqua,
+			// Appearance:           mac.NSAppearanceNameDarkAqua,
 			WebviewIsTransparent: true,
 		},
 

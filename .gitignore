@@ -19,3 +19,8 @@ frontend/node_modules/
 .idea/
 .DS_Store
 
+# Swift build artifacts
+Swift/*.o
+Swift/*.a
+Swift/*-Swift.h
+
