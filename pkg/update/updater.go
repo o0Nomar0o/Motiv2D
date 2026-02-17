@@ -18,6 +18,7 @@ import (
 )
 
 const CurrentAppVersion = "1.0.0"
+var BuildVariant = "standard"
 
 type UpdateInfo struct {
 	Version   string `json:"version"`

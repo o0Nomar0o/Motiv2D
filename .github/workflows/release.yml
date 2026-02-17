@@ -8,23 +8,27 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     strategy:
       matrix:
         include:
           - os: windows-latest
             platform: windows/amd64
-            artifact: motiv2d-windows.zip
+            artifact: windows
           - os: macos-latest
             platform: darwin/arm64
-            artifact: motiv2d-macos-arm64.zip
-            target_arch: arm64
+            artifact: macos-arm64
           - os: macos-latest
             platform: darwin/amd64
-            artifact: motiv2d-macos-intel.zip
-            target_arch: x86_64
+            artifact: macos-intel
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Get Version
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -48,70 +52,103 @@ jobs:
       - name: Build Swift Static Library (macOS Only)
         if: matrix.os == 'macos-latest'
         run: |
-          # 1. Compile for ARM64 (Apple Silicon)
-          swiftc -c Swift/window_control.swift -o Swift/window_control_arm64.o \
-            -target arm64-apple-macos15.0 -parse-as-library
-          
-          # 2. Compile for x86_64 (Intel)
-          swiftc -c Swift/window_control.swift -o Swift/window_control_x86_64.o \
-            -target x86_64-apple-macos15.0 -parse-as-library
-          
-          # 3. Create a Universal (Fat) Object file
-          lipo -create Swift/window_control_arm64.o Swift/window_control_x86_64.o \
-            -output Swift/window_control.o
-          
-          # 4. Package into the final static library
+          swiftc -c Swift/window_control.swift -o Swift/window_control_arm64.o -target arm64-apple-macos15.0 -parse-as-library
+          swiftc -c Swift/window_control.swift -o Swift/window_control_x86_64.o -target x86_64-apple-macos15.0 -parse-as-library
+          lipo -create Swift/window_control_arm64.o Swift/window_control_x86_64.o -output Swift/window_control.o
           ar rcs Swift/libwindow_control.a Swift/window_control.o
-          
-          # Verify it contains both architectures
-          lipo -info Swift/libwindow_control.a
-
+        
       - name: Build Wails
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
-            # Set target to macOS 15 (Tahoe)
             export MACOSX_DEPLOYMENT_TARGET=15.0
-            
             wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w"
             
-            # Update Info.plist with Tahoe-specific modern UI keys
             PLIST_PATH="build/bin/motiv2d.app/Contents/Info.plist"
-            
-            plutil -replace LSMinimumSystemVersion -string "15.0.0" "$PLIST_PATH"
-            plutil -replace NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH"
-            
-            # This triggers the modern "Liquid Glass" titlebar behavior
+            # Use '|| true' to prevent failure if keys are already present
+            plutil -replace LSMinimumSystemVersion -string "15.0.0" "$PLIST_PATH" || true
+            plutil -replace NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH" || true
             plutil -insert NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || \
-            plutil -replace NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH"
-
-            echo "macOS build for ${{ matrix.platform }} finalized with Swift Bridge and Tahoe UI."
+            plutil -replace NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || true
           else
             wails build -platform ${{ matrix.platform }} -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed
-            wails build -platform ${{ matrix.platform }} -o motiv2d-frameless.exe -ldflags "-s -w -X main.FramelessMode=true" -webview2 embed
+            wails build -platform ${{ matrix.platform }} -o motiv2d-frameless.exe -ldflags "-s -w -X 'main.FramelessMode=true'" -webview2 embed
           fi
 
-      - name: MacOS Signing & Packaging
-        if: matrix.os == 'macos-latest'
+      - name: Package & Generate Hash
+        id: package
+        shell: bash
         run: |
-          cd build/bin
-          chmod +x motiv2d.app/Contents/MacOS/motiv2d
-          # Deep sign is mandatory for manual plist edits to be respected by the OS
-          codesign --force --deep --sign - motiv2d.app
-          zip -r ../../${{ matrix.artifact }} motiv2d.app
+          if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            cd build/bin
+            chmod +x motiv2d.app/Contents/MacOS/motiv2d
+            codesign --force --deep --sign - motiv2d.app
+            zip -r ../../motiv2d-${{ matrix.artifact }}.zip motiv2d.app
+          else
+            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-standard.exe' -DestinationPath './motiv2d-windows-standard.zip'"
+            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless.exe' -DestinationPath './motiv2d-windows-frameless.zip'"
+          fi
 
-      - name: Windows Zip
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          Compress-Archive -Path "build/bin/motiv2d-standard.exe", "build/bin/motiv2d-frameless.exe" -DestinationPath "./${{ matrix.artifact }}"
-
-      - name: Release
+      - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            motiv2d-windows.zip
-            motiv2d-macos-arm64.zip
-            motiv2d-macos-intel.zip
+            *.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-manifest:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Generate update.json
+        run: |
+          VERSION=${{ github.ref_name }}
+          VERSION_NUM=${VERSION#v}
+          
+          # Use GitHub CLI to download the assets we just released
+          gh release download $VERSION --pattern "*.zip"
+          
+          WIN_STD_HASH=$(shasum -a 256 motiv2d-windows-standard.zip | awk '{print $1}')
+          WIN_FRM_HASH=$(shasum -a 256 motiv2d-windows-frameless.zip | awk '{print $1}')
+          MAC_ARM_HASH=$(shasum -a 256 motiv2d-macos-arm64.zip | awk '{print $1}')
+          MAC_INTEL_HASH=$(shasum -a 256 motiv2d-macos-intel.zip | awk '{print $1}')
+
+          cat <<EOF > update.json
+          {
+            "version": "$VERSION_NUM",
+            "platforms": {
+              "windows_standard_amd64": {
+                "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-windows-standard.zip",
+                "checksum": "$WIN_STD_HASH"
+              },
+              "windows_frameless_amd64": {
+                "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-windows-frameless.zip",
+                "checksum": "$WIN_FRM_HASH"
+              },
+              "darwin_arm64": {
+                "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-macos-arm64.zip",
+                "checksum": "$MAC_ARM_HASH"
+              },
+              "darwin_amd64": {
+                "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-macos-intel.zip",
+                "checksum": "$MAC_INTEL_HASH"
+              }
+            }
+          }
+          EOF
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add update.json
+          git commit -m "chore: update manifest to ${{ github.ref_name }}"
+          git pull origin main --rebase
+          git push origin main
