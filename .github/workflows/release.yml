@@ -48,15 +48,23 @@ jobs:
       - name: Build Swift Static Library (macOS Only)
         if: matrix.os == 'macos-latest'
         run: |
-          # Compile the Swift bridge specifically for the target architecture
-          # We use -parse-as-library to prevent the "duplicate _main" error
-          swiftc -c Swift/window_control.swift \
-            -o Swift/window_control.o \
-            -target ${{ matrix.target_arch }}-apple-macos15.0 \
-            -parse-as-library
+          # 1. Compile for ARM64 (Apple Silicon)
+          swiftc -c Swift/window_control.swift -o Swift/window_control_arm64.o \
+            -target arm64-apple-macos15.0 -parse-as-library
           
-          # Package into the static library that app_darwin.go expects
+          # 2. Compile for x86_64 (Intel)
+          swiftc -c Swift/window_control.swift -o Swift/window_control_x86_64.o \
+            -target x86_64-apple-macos15.0 -parse-as-library
+          
+          # 3. Create a Universal (Fat) Object file
+          lipo -create Swift/window_control_arm64.o Swift/window_control_x86_64.o \
+            -output Swift/window_control.o
+          
+          # 4. Package into the final static library
           ar rcs Swift/libwindow_control.a Swift/window_control.o
+          
+          # Verify it contains both architectures
+          lipo -info Swift/libwindow_control.a
 
       - name: Build Wails
         shell: bash
