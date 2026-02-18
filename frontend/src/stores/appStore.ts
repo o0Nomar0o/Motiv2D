@@ -20,8 +20,11 @@ export const consoleLogs = writable([]);
 export const navState = writable(false);
 export const leftPanelClp = writable(false);
 export const rightPanelClp = writable(false);
+export const bottomPanelClp = writable(false);
 
 export const currentView = writable<'DASHBOARD' | 'SPINE'>('DASHBOARD');
+
+export const mixerHeight = writable(300);
 
 export const setView = (view: 'DASHBOARD' | 'SPINE') => {
   currentView.set(view);
@@ -154,6 +157,7 @@ export function triggerSpineRefresh() {
     spineUpdateSignal.update(n => n + 1);
 }
 
+export const selectedTrackId = writable<number>(0);
 
 export const isSettingsOpen = writable(false);
 export const isImportOpen = writable(false);

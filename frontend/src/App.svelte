@@ -8,6 +8,7 @@
   import SpineCanvas from "./components/canvas/SpineCanvas.svelte";
   import AnimationSidebar from "./components/canvas/AnimationSidebar.svelte";
   import CharacterSidebar from "./components/canvas/CharacterSidebar.svelte";
+  import BottomPanel from "./components/navbar/BottomPanel.svelte";
   import SettingsModal from "./components/modals/SettingsModal.svelte";
   import ImportModal from "./components/modals/ImportModal.svelte";
   import About from "./components/modals/About.svelte";
@@ -25,6 +26,7 @@
     isImportOpen,
     leftPanelClp,
     rightPanelClp,
+    bottomPanelClp,
     configStore,
     isSelectSlot,
     initRemotes,
@@ -35,6 +37,7 @@
   import { EventsOn } from "../wailsjs/runtime/runtime";
   import { Platform } from "../wailsjs/go/main/App";
   import { onMount, onDestroy } from "svelte";
+  import { CheckForUpdates } from "../wailsjs/go/update/UpdaterService";
 
   let platform: "darwin" | "windows" | "linux" = "windows";
 
@@ -54,6 +57,14 @@
   let rightSidebarRef: SenPanel;
   let animSidebarRef: AnimationSidebar;
   let charSidebarRef: CharacterSidebar;
+
+  // $: leftMargin = $leftPanelClp ? "1rem" : "calc(1.5rem + 305px)";
+  $: leftMargin = $bottomPanelClp
+    ? "auto" // This lets it slide to the right
+    : $leftPanelClp
+      ? "1rem"
+      : "calc(1.5rem + 305px)";
+  $: rightMargin = $rightPanelClp ? "1rem" : "calc(1.5rem + 293px)";
 
   let updateInfo: any = null;
 
@@ -122,9 +133,19 @@
 
     //Wails Event Listeners
     const unoffAbout = EventsOn("open_about_modal", () => (showAbout = true));
-    const unoffUpdate = EventsOn("open_update_modal", (data) => {
-      updateInfo = data;
+    const unoffUpdate = EventsOn("open_update_modal", async () => {
       showUpdate = true;
+
+      try {
+        const result = await CheckForUpdates();
+
+        updateInfo = {
+          ...result.info,
+          available: result.available,
+        };
+      } catch (err) {
+        console.error("Failed to fetch updates:", err);
+      }
     });
 
     (async () => {
@@ -201,6 +222,14 @@
       <div class="right-overlay">
         <CharacterSidebar bind:this={charSidebarRef} />
       </div>
+      <div
+        class="bottom-overlay"
+        style:left={leftMargin}
+        style:right={rightMargin}
+        style:width={$bottomPanelClp ? "48px" : "unset"}
+      >
+        <BottomPanel player={canvasComponent?.getPlayer()} />
+      </div>
     {/if}
   </div>
   <SettingsModal bind:isOpen={$isSettingsOpen} />
@@ -260,14 +289,14 @@
 
   :global(.animation-panel > .sidebar-container) {
     pointer-events: auto;
-    margin-top: 0.5rem; 
+    margin-top: 0.5rem;
     height: 100%;
     box-sizing: border-box;
   }
 
   :global(.right-overlay > *) {
     pointer-events: auto;
-    height: 100%; 
+    height: 100%;
     display: flex;
     flex-direction: column;
   }
@@ -275,7 +304,7 @@
   .canvas-side {
     flex: 1;
     position: relative;
-    z-index: 1; 
+    z-index: 1;
   }
 
   .global-drag-handle {
@@ -368,6 +397,38 @@
     height: 100vh;
     overflow-y: auto;
     overscroll-behavior: contain;
+  }
+
+  .bottom-overlay {
+    position: fixed;
+    bottom: 0.6rem;
+    z-index: 100;
+    pointer-events: none;
+
+    /* Ensure the overlay container itself is aligned right 
+       so the child has a right-side anchor point */
+    display: flex;
+    justify-content: flex-end;
+
+    /* Use the reactive margins we discussed earlier */
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  :global(.bottom-overlay > *) {
+    pointer-events: auto;
+    background: rgba(20, 20, 20, 0.4);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 1px rgba(255, 255, 255, 0.1);
+
+    overflow: hidden;
+    height: 100%;
   }
 
   .scroll-container {

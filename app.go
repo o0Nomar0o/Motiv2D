@@ -54,9 +54,9 @@ func (a *App) makeMenu() *menu.Menu {
 	appMenu := AppMenu.AddSubmenu("MOTIV.2D")
 
 	appMenu.AddText("About MOTIV.2D", nil, func(_ *menu.CallbackData) {
-    if a.ctx != nil {
+		if a.ctx != nil {
         wailsRuntime.EventsEmit(a.ctx, "open_about_modal")
-    }
+	}
 })
 
 appMenu.AddText("Check for Updates", keys.CmdOrCtrl("u"), func(_ *menu.CallbackData) {

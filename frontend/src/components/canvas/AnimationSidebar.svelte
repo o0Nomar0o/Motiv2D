@@ -9,6 +9,8 @@
     spineUpdateSignal,
     isSelectSlot,
     selectedSlotName,
+    mixerHeight,
+    selectedTrackId,
   } from "../../stores/appStore";
 
   import VisibilityOn from "../../assets/images/visibility-on.svg";
@@ -19,18 +21,19 @@
 
   import TrackMix from "./TrackMix.svelte";
 
-  let focusedTrackId = 0; 
-  let mixerHeight = 300;
+  let focusedTrackId = 0;
+  // let mixerHeight = 300;
+  
+  $: selectedTrackId.set(focusedTrackId);
 
   function playAnimation(name: string) {
-
     if (!player) return;
     const trackId = focusedTrackId;
 
     player.playAnimation(trackId, name, true);
 
     currentAnimName = name;
-
+    
     characterSettings.update((all) => ({
       ...all,
       [$activeCharacter.id]: {
@@ -49,7 +52,7 @@
   }
   function handleMouseMove(e: MouseEvent) {
     if (!isResizing) return;
-    mixerHeight = window.innerHeight - e.clientY - 40; 
+    $mixerHeight = window.innerHeight - e.clientY - 40;
   }
   function stopResizing() {
     isResizing = false;
@@ -74,7 +77,6 @@
   $: activeTabIndex = activeTab === "animations" ? 0 : 1;
 
   function refreshData() {
-    
     if (!player?.skeleton?.data) return;
 
     const savedSlots =
@@ -103,7 +105,7 @@
     skins = player.skeleton.data.skins.map((s: any) => s.name);
 
     const tempGroups: { [key: string]: any[] } = {};
-    const MAX_ITEMS = 15; 
+    const MAX_ITEMS = 15;
 
     rawSlots.forEach((slot) => {
       const parts = slot.name.split("_");
@@ -137,21 +139,17 @@
   }
 
   function selectSkin(skinName: string) {
-
     if (!player?.skeleton) return;
     player.skeleton.setSkinByName(skinName);
     player.skeleton.setSlotsToSetupPose();
     refreshData();
-
   }
 
   function handleVisibilityChange(slotName: string, isChecked: boolean) {
-
     player.setSlotVisibility(slotName, isChecked);
     player.stopHighlightLoop();
 
     characterSettings.update((all) => {
-
       const charId = $activeCharacter.id;
       const currentSlots = all[charId]?.slotVisibility || {};
 
@@ -162,7 +160,6 @@
           slotVisibility: { ...currentSlots, [slotName]: isChecked },
         },
       };
-
     });
 
     slots = slots.map((s) =>
@@ -194,12 +191,9 @@
   }
 
   async function scrollToGroup(slotName: string) {
-
     if (activeTab !== "slots") {
-
       activeTab = "slots";
       await tick();
-
     }
 
     const parts = slotName.split("_");
@@ -217,7 +211,7 @@
     if (el) {
       el.scrollIntoView({
         behavior: "smooth",
-        block: "center", 
+        block: "center",
       });
 
       el.classList.add("flash-highlight");
@@ -225,14 +219,11 @@
     }
   }
 
-
   $: savedPma = $characterSettings[$activeCharacter?.id]?.pma;
 
   $: if (player && savedPma !== undefined) {
-
     player.isPMA = savedPma;
     player = player;
-
   }
   export function togglePMA() {
     if (!player || !$activeCharacter) return;
@@ -367,7 +358,6 @@
   }
 
   $: if ($selectedSlotName && activeTab === "slots") {
-
     const targetName = $selectedSlotName;
     selectedSlotName.set(null);
 
@@ -688,7 +678,7 @@
         on:mousedown|preventDefault={startResizing}
       ></div>
 
-      <div class="mixer-section" style="height: {mixerHeight}px">
+      <div class="mixer-section" style="height: {$mixerHeight}px">
         <TrackMix {player} bind:focusedTrackId />
       </div>
     {/if}
@@ -973,7 +963,7 @@
     border-color: rgba(255, 255, 255, 0.1);
     background: rgba(0, 0, 0, 0.2);
 
-    max-height: 80%; 
+    max-height: 80%;
     overflow-y: auto;
     overflow-x: hidden;
     flex-shrink: 1;
@@ -1007,7 +997,7 @@
     flex-shrink: 0;
     width: 32px;
     display: block;
-    white-space: nowrap; 
+    white-space: nowrap;
     overflow: hidden;
     text-align: center;
   }

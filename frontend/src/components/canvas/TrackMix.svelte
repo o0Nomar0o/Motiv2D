@@ -1,7 +1,7 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
   import { onMount, onDestroy } from "svelte";
-import { characterSettings, activeCharacter } from "../../stores/appStore";
+  import { characterSettings, activeCharacter, selectedTrackId } from "../../stores/appStore";
   import ChevronDown from "../../assets/images/chevron-down.svg";
   import ChevronLeft from "../../assets/images/chevron-left.svg";
   import PlayIcon from "../../assets/images/play.svg";
@@ -22,8 +22,8 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
     progress: number;
   }
 
-  // To solve the "disappearing on tab switch" issue, we store the tracks 
-  // on the player object itself. Svelte components unmount when tabs switch, 
+  // To solve the "disappearing on tab switch" issue, we store the tracks
+  // on the player object itself. Svelte components unmount when tabs switch,
   // wiping local variables, but the player instance persists.
   let tracks: Track[] = [];
 
@@ -91,44 +91,47 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
   //   }
   // }
 
+
   function syncWithSpine() {
     if (!player?.state || !player._mixerState) return;
 
     let changed = false;
-    
+
     // 1. Get the latest source of truth from the player object
     const sourceTracks = player._mixerState as Track[];
 
     const newTracks = sourceTracks.map((sourceT, index) => {
       // Get the existing local track state if it exists
       const t = tracks[index] || sourceT;
-      
+
       const entry = player.state.getCurrent(t.id);
       const currentName = entry?.animation?.name || "Empty";
 
       let currentProgress = 0;
       if (entry && entry.animation) {
         const duration = entry.animation.duration;
-        currentProgress = duration > 0 ? (entry.trackTime % duration) / duration : 0;
+        currentProgress =
+          duration > 0 ? (entry.trackTime % duration) / duration : 0;
       }
 
       // Sync timeScale to the paused state
       if (entry) {
         entry.alpha = t.alpha;
-        entry.timeScale = sourceT.paused ? 0 : t.speed; 
+        entry.timeScale = sourceT.paused ? 0 : t.speed;
       }
 
       const shouldUpdateProgress = isDraggingId !== t.id;
 
       const pauseChanged = t.paused !== sourceT.paused;
       const nameChanged = t.name !== currentName;
-      const progressChanged = shouldUpdateProgress && Math.abs(t.progress - currentProgress) > 0.01;
+      const progressChanged =
+        shouldUpdateProgress && Math.abs(t.progress - currentProgress) > 0.01;
 
       if (pauseChanged || nameChanged || progressChanged) {
         changed = true;
         return {
           ...t,
-          paused: sourceT.paused, 
+          paused: sourceT.paused,
           name: currentName,
           progress: shouldUpdateProgress ? currentProgress : t.progress,
         };
@@ -141,14 +144,14 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
     }
   }
   function saveMixerState() {
-      if (!$activeCharacter) return;
-      characterSettings.update(all => ({
-          ...all,
-          [$activeCharacter.id]: {
-              ...all[$activeCharacter.id],
-              mixerTracks: tracks
-          }
-      }));
+    if (!$activeCharacter) return;
+    characterSettings.update((all) => ({
+      ...all,
+      [$activeCharacter.id]: {
+        ...all[$activeCharacter.id],
+        mixerTracks: tracks,
+      },
+    }));
   }
 
   let syncInterval: any;
@@ -166,7 +169,8 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
   }
 
   function addNewTrack() {
-    const newId = tracks.length > 0 ? Math.max(...tracks.map((t) => t.id)) + 1 : 0;
+    const newId =
+      tracks.length > 0 ? Math.max(...tracks.map((t) => t.id)) + 1 : 0;
     tracks = [
       ...tracks,
       {
@@ -182,8 +186,8 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
     // player._mixerState = tracks;
     // focusedTrackId = newId;
     player._mixerState = tracks;
-     focusedTrackId = newId;
-     saveMixerState();
+    focusedTrackId = newId;
+    saveMixerState();
   }
 
   function removeTrack(id: number) {
@@ -196,9 +200,20 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
   }
 
   function toggleTrackExpand(id: number) {
-    tracks = tracks.map((t) => (t.id === id ? { ...t, expanded: !t.expanded } : t));
+    tracks = tracks.map((t) =>
+      t.id === id ? { ...t, expanded: !t.expanded } : t,
+    );
     player._mixerState = tracks;
     focusedTrackId = id;
+  }
+
+  function focusTrack(id: number) {
+    // tracks = tracks.map((t) =>
+    //   t.id === id ? { ...t, expanded: !t.expanded } : t,
+    // );
+    // player._mixerState = tracks;
+    focusedTrackId = id;
+    selectedTrackId.set(id);
   }
 
   function togglePause(id: number) {
@@ -215,7 +230,9 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
       const entry = player.state.getCurrent(id);
       if (entry && entry.animation) {
         entry.trackTime = newProgress * entry.animation.duration;
-        tracks = tracks.map((t) => (t.id === id ? { ...t, progress: newProgress } : t));
+        tracks = tracks.map((t) =>
+          t.id === id ? { ...t, progress: newProgress } : t,
+        );
         player._mixerState = tracks;
       }
     }
@@ -225,9 +242,8 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
   function togglePMA() {
     if (!player) return;
     player.isPMA = !player.isPMA;
-    player = player; 
+    player = player;
   }
-
 </script>
 
 <div class="track-mixer-container">
@@ -242,7 +258,7 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <div
           class="track-item-header"
-          on:click={() => toggleTrackExpand(track.id)}
+          on:click={() => focusTrack(track.id)}
         >
           <div class="track-meta">
             <span class="track-number">T{track.id}</span>
@@ -261,6 +277,7 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
             <div
               class="icon-mask chevron"
               style="--icon: url({track.expanded ? ChevronDown : ChevronLeft})"
+              on:click={() => toggleTrackExpand(track.id)}
             ></div>
           </div>
         </div>
@@ -358,10 +375,11 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
     background-color: var(--accent);
   }
   .chevron {
-    width: 10px;
-    height: 10px;
-    opacity: 0.4;
+    width: 15px;
+    height: 15px;
+    opacity: 0.8;
   }
+
 
   .track-mixer-container {
     display: flex;
@@ -492,7 +510,7 @@ import { characterSettings, activeCharacter } from "../../stores/appStore";
     background: rgba(0, 0, 0, 0.2);
     padding: 6px 12px;
     border-radius: 8px;
-    min-width: 0; 
+    min-width: 0;
   }
   .control-box.no-bg {
     background: none;

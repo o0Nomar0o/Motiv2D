@@ -263,7 +263,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
   }
 
   .toggle-container.act .toggle-circle-main {

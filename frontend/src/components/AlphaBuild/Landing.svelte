@@ -3,6 +3,7 @@
   import { fly } from "svelte/transition";
   import Shell from "../modals/ChangelogModal.svelte";
   import changelogRaw from "../../assets/CHANGELOG.md?raw";
+
   let scrollY = 0;
 
   function parseChangelog(raw: string) {
