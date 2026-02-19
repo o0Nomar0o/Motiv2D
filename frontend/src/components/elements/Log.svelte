@@ -6,25 +6,20 @@
   import { logStore } from "../../stores/appStore";
 
   let viewport: HTMLElement;
-  let autoScroll = true; // Useful to disable if user scrolls up manually
+  let autoScroll = true;
 
-  // Improved Scroll Logic
   async function scrollToBottom(force = false) {
     await tick();
+
     if (viewport && (autoScroll || force)) {
-      // Use instant assignment for better reliability during high-frequency logs
       viewport.scrollTop = viewport.scrollHeight;
     }
   }
 
-  // Reactive trigger for ANY store change
-  // We track the length specifically to trigger on new items
   $: $logStore.length, scrollToBottom();
 
-  // Handle incoming events from Go
   function handleNewLog(message: string, level: any = "info") {
     logStore.addLog(message, level);
-    // The reactive statement above will handle the scroll
   }
 
   function toggleExpand(id: number) {
@@ -35,7 +30,6 @@
           : l,
       );
     });
-    // We scroll again because expanding a card changes the container height
     scrollToBottom(true);
   }
 
@@ -62,14 +56,15 @@
       <span class="mono">LISTENING_FOR_ASSETS</span>
     </div>
     <button class="glass-red-btn" on:click={() => logStore.clear()}>
-      CLEAR SESSION</button>
+      CLEAR SESSION</button
+    >
   </div>
 
   <div class="log-viewport custom-scrollbar" bind:this={viewport}>
     {#each $logStore as log (log.id)}
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <div
-        class="log-card {log.type.toLowerCase()}"
+        class="log-card {log.type.toLowerCase()} lvl-{log.level}"
         class:is-expanded={log.expanded}
         on:click={() => toggleExpand(log.id)}
       >
@@ -118,6 +113,41 @@
 </div>
 
 <style>
+  .log-card {
+    --lvl-color: 96, 165, 250;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .lvl-error {
+    --lvl-color: 248, 113, 113;
+    background: rgba(248, 113, 113, 0.05);
+    border-color: rgba(248, 113, 113, 0.2);
+  }
+
+  .lvl-error .label-text {
+    color: rgb(248, 113, 113);
+    font-weight: 600;
+  }
+
+  .lvl-warn {
+    --lvl-color: 251, 191, 36; 
+    background: rgba(251, 191, 36, 0.05);
+    border-color: rgba(251, 191, 36, 0.2);
+  }
+
+  .lvl-warn .label-text {
+    color: rgb(251, 191, 36);
+  }
+
+  .lvl-debug {
+    --lvl-color: 167, 139, 250; 
+    opacity: 0.8;
+  }
+  .lvl-debug .label-text {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
   .log-container {
     height: 100%;
     display: flex;
@@ -177,23 +207,23 @@
   }
 
   .log-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: 12px;
     transition:
       background 0.2s,
-      border 0.2s;
+      border 0.2s,
+      transform 0.1s;
   }
 
   .log-card.asset_group {
     cursor: pointer;
   }
-  .log-card.asset_group:hover {
-    background: rgba(255, 255, 255, 0.04);
+  .log-card:active {
+    transform: scale(0.995);
   }
+
   .log-card.is-expanded {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(var(--lvl-color), 0.08);
+    border-color: rgba(var(--lvl-color), 0.3);
   }
 
   .log-main {
@@ -213,7 +243,7 @@
   .gutter-line {
     width: 1px;
     height: 1.2rem;
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(var(--lvl-color), 0.2);
     margin: 0 1.25rem;
   }
 
@@ -222,72 +252,71 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    min-width: 0; /* Important for ellipsis */
+    min-width: 0;
   }
 
   .dir-tag {
     font-size: 0.5rem;
     font-weight: 900;
-    color: #60a5fa;
-    background: rgba(96, 165, 250, 0.15);
+    color: whitesmoke;
+    background: var(--accent);
     padding: 2px 5px;
     border-radius: 4px;
+    border: 1px solid rgba(var(--lvl-color), 0.2);
   }
 
   .label-text {
     font-family: "MarklMono", monospace;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.85);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .system .label-text {
-    color: rgba(255, 255, 255, 0.35);
+  /* .system .label-text {
     font-style: italic;
-  }
+  } */
 
   .file-count {
     font-size: 0.6rem;
-    color: rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.03);
+    color: rgba(var(--lvl-color), 0.7);
+    background: rgba(var(--lvl-color), 0.1);
     padding: 1px 8px;
     border-radius: 10px;
   }
 
-  /* Expanded View Styling */
   .expansion-area {
-    padding: 0 1rem 1rem 5.7rem; /* Align perfectly after gutter line */
+    padding: 0 1rem 1rem 5.7rem;
     display: flex;
     flex-direction: column;
     gap: 0.8rem;
   }
 
   .path-display {
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.2);
     padding: 0.6rem 0.8rem;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(var(--lvl-color), 0.1);
   }
 
   .tiny-label {
     display: block;
     font-size: 0.55rem;
-    color: rgba(255, 255, 255, 0.15);
+    color: rgba(var(--lvl-color), 0.4);
     margin-bottom: 4px;
     letter-spacing: 0.05em;
   }
+
   .path-display code {
     font-size: 0.65rem;
     color: rgba(255, 255, 255, 0.4);
     word-break: break-all;
-    opacity: 0.8;
   }
 
   .file-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr; /* Strict 2 columns */
+    grid-template-columns: 1fr 1fr;
     gap: 0.6rem 1.5rem;
   }
 
@@ -301,35 +330,27 @@
   .file-dot {
     width: 3px;
     height: 3px;
-    background: #60a5fa;
+    background: rgb(var(--lvl-color));
     border-radius: 50%;
-    opacity: 0.4;
+    opacity: 0.6;
     flex-shrink: 0;
   }
 
   .file-name {
     font-size: 0.7rem;
-    color: #60a5fa;
+    color: rgba(255, 255, 255, 0.6);
     font-family: "MarklMono", monospace;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis; /* Fix for overlapping long file names */
+    text-overflow: ellipsis;
   }
 
   .chevron-icon {
     width: 14px;
     height: 14px;
-    background-color: rgba(255, 255, 255, 0.3);
+    background-color: rgba(var(--lvl-color), 0.5);
     mask: var(--icon) no-repeat center / contain;
     -webkit-mask: var(--icon) no-repeat center / contain;
     margin-left: 1rem;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
   }
 </style>

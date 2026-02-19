@@ -1,6 +1,7 @@
 build/bin
 node_modules
 frontend/dist
+frontend/src/lib/ZIPS
 
 # Wails Binaries
 build/bin/

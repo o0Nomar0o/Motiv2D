@@ -100,6 +100,14 @@
                             url("assets/fonts/nunito-v16-latin-regular.woff2") format("woff2");
 }
 
+@font-face {
+    font-family:            "FiraCode";
+    font-style:             normal;
+    font-weight:            400;
+    src:                    local(""),
+                            url("assets/fonts/Fira_Code/FiraCode-Regular.woff2") format("woff2");
+}
+
 /* html, body, #app {
   background: transparent !important;
 } */

@@ -1,5 +1,4 @@
 <script lang="ts">
-
   import SegmentedCtrl from "../elements/SegmentedCtrl.svelte";
   import LogViewer from "../elements/Log.svelte";
   import TrackMixer from "../canvas/TrackMix.svelte";
@@ -18,16 +17,16 @@
 
   let logComponent;
   let isResizing = false;
-  
+
   $: allOptions = [...permanentOptions, ...dynamicTabs];
   let activeTab = "LOGS";
 
   function startResizing(event: MouseEvent) {
     if ($bottomPanelClp) return;
     isResizing = true;
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', stopResizing);
-    document.body.style.cursor = 'ns-resize';
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", stopResizing);
+    document.body.style.cursor = "ns-resize";
   }
 
   function handleMouseMove(event: MouseEvent) {
@@ -40,9 +39,9 @@
 
   function stopResizing() {
     isResizing = false;
-    window.removeEventListener('mousemove', handleMouseMove);
-    window.removeEventListener('mouseup', stopResizing);
-    document.body.style.cursor = 'default';
+    window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("mouseup", stopResizing);
+    document.body.style.cursor = "default";
   }
 </script>
 
@@ -60,7 +59,7 @@
 
   <header class="panel-header" class:centered={$bottomPanelClp}>
     {#if !$bottomPanelClp}
-      <div class="tabs-container" >
+      <div class="tabs-container">
         <SegmentedCtrl
           options={allOptions}
           bind:activeId={activeTab}
@@ -88,8 +87,7 @@
           <div class="mono-label">
             <LogViewer bind:this={logComponent} />
           </div>
-        {:else if activeTab === "MIXER"}
-          {:else if activeTab === "ANIM"}
+        {:else if activeTab === "MIXER"}{:else if activeTab === "ANIM"}
           <div class="timeline-view"></div>
         {/if}
       </div>
@@ -140,7 +138,7 @@
     height: 4px;
     background: rgba(255, 255, 255, 0.15);
     border-radius: 100px;
-    transition: 
+    transition:
       width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
       height 0.3s ease,
       background 0.3s ease,
@@ -153,6 +151,7 @@
     height: 5px;
     background: rgba(255, 255, 255, 0.4);
     box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+    background-color: var(--accent);
   }
 
   .glass-morph {
@@ -227,7 +226,7 @@
     font-family: "MarklMono", monospace;
     font-size: 10px;
     color: rgba(255, 255, 255, 0.3);
-    text-transform: uppercase;
+
     letter-spacing: 0.12em;
   }
 
