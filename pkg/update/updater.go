@@ -19,7 +19,7 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-const CurrentAppVersion = "1.0.0"
+const CurrentAppVersion = "1.0.1"
 
 var BuildVariant = "standard"
 
