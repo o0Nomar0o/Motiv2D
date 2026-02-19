@@ -22,9 +22,8 @@
     progress: number;
   }
 
-  // To solve the "disappearing on tab switch" issue, we store the tracks
-  // on the player object itself. Svelte components unmount when tabs switch,
-  // wiping local variables, but the player instance persists.
+  $: focusedTrackId = $selectedTrackId;
+
   let tracks: Track[] = [];
 
   function initTracks() {

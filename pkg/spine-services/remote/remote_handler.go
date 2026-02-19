@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // func (h *RemoteHandler) CheckSourceHealth(url string) bool {
@@ -239,7 +241,7 @@ func (h *RemoteHandler) crawlGitHubRecursive(
 
 			if _, exists := assetMap[folderPath]; !exists {
 				assetMap[folderPath] = &RemoteAsset{
-					ID:          folderID, 
+					ID:          folderID,
 					DisplayName: displayName,
 					BaseURL:     folderPath,
 					RemoteRoot:  remoteRoot,
@@ -345,51 +347,51 @@ func (h *RemoteHandler) DownloadRemoteAsset(asset RemoteAsset) error {
 }
 
 func (h *RemoteHandler) performDownload(githubUrl string, dest string) error {
-    //Convert GitHub Raw to jsDelivr CDN
-    finalUrl := h.convertToJsDelivr(githubUrl)
+	//Convert GitHub Raw to jsDelivr CDN
+	finalUrl := h.convertToJsDelivr(githubUrl)
 
-    req, _ := http.NewRequest("GET", finalUrl, nil)
-    req.Header.Set("User-Agent", "Motiv2D-Asset-Bridge")
+	req, _ := http.NewRequest("GET", finalUrl, nil)
+	req.Header.Set("User-Agent", "Motiv2D-Asset-Bridge")
 
-    resp, err := h.client.Do(req)
-    if err != nil {
-        return fmt.Errorf("cdn connection failed: %w", err)
-    }
-    defer resp.Body.Close()
+	resp, err := h.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("cdn connection failed: %w", err)
+	}
+	defer resp.Body.Close()
 
-    if resp.StatusCode != http.StatusOK {
-        return fmt.Errorf("cdn error %d: check if repo is public", resp.StatusCode)
-    }
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("cdn error %d: check if repo is public", resp.StatusCode)
+	}
 
-    out, err := os.Create(dest)
-    if err != nil {
-        return err
-    }
-    defer out.Close()
+	out, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
 
-    _, err = io.Copy(out, resp.Body)
-    return err
+	_, err = io.Copy(out, resp.Body)
+	return err
 }
 
 func (h *RemoteHandler) convertToJsDelivr(url string) string {
 
-    if !strings.Contains(url, "raw.githubusercontent.com") {
-        return url
-    }
+	if !strings.Contains(url, "raw.githubusercontent.com") {
+		return url
+	}
 
-    path := strings.TrimPrefix(url, "https://raw.githubusercontent.com/")
-    parts := strings.Split(path, "/")
+	path := strings.TrimPrefix(url, "https://raw.githubusercontent.com/")
+	parts := strings.Split(path, "/")
 
-    if len(parts) < 3 {
-        return url 
-    }
+	if len(parts) < 3 {
+		return url
+	}
 
-    user := parts[0]
-    repo := parts[1]
-    branch := parts[2]
-    filePath := strings.Join(parts[3:], "/")
+	user := parts[0]
+	repo := parts[1]
+	branch := parts[2]
+	filePath := strings.Join(parts[3:], "/")
 
-    return fmt.Sprintf("https://cdn.jsdelivr.net/gh/%s/%s@%s/%s", user, repo, branch, filePath)
+	return fmt.Sprintf("https://cdn.jsdelivr.net/gh/%s/%s@%s/%s", user, repo, branch, filePath)
 }
 
 func (h *RemoteHandler) FinalizeAsset(sourceName string, assetID string) (common.SpineMetadata, error) {
@@ -438,8 +440,20 @@ func (h *RemoteHandler) RemoveAssetCache(sourceName string, assetID string) erro
 	targetDir := filepath.Join(cacheDir, sourceName, assetID)
 
 	if sourceName == "" || assetID == "" {
+
+		wailsRuntime.EventsEmit(h.ctx, "link:log", map[string]string{
+			"message": "Invalid paths provided: " + targetDir,
+			"level":   "error",
+		})
+
 		return fmt.Errorf("invalid paths provided")
+
 	}
+
+	wailsRuntime.EventsEmit(h.ctx, "link:log", map[string]string{
+		"message": "Removing Downloaded Asset: " + targetDir,
+		"level":   "info",
+	})
 
 	return os.RemoveAll(targetDir)
 }

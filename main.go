@@ -23,6 +23,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 //go:embed all:frontend/dist
@@ -65,12 +66,21 @@ func main() {
 					}
 
 					fmt.Printf("WAILS ASSET REQUEST: %s\n", decodedPath)
+					wailsRuntime.EventsEmit(app.ctx, "link:log", map[string]string{
+						"message": "WAILS ASSET REQUEST: " + decodedPath,
+						"level":   "info",
+					})
 
 					filePath := filepath.Clean(decodedPath)
 					data, err := os.ReadFile(filePath)
 
 					if err != nil {
 						fmt.Printf("FILE NOT FOUND: %s\n", filePath)
+						wailsRuntime.EventsEmit(app.ctx, "link:log", map[string]string{
+							"message": "FILE NOT FOUND: " + filePath,
+							"level":   "error",
+						})
+
 						w.WriteHeader(http.StatusNotFound)
 						return
 					}
@@ -115,7 +125,7 @@ func main() {
 		Menu: app.makeMenu(),
 
 		Mac: &mac.Options{
-			TitleBar:             mac.TitleBarHiddenInset(),
+			TitleBar: mac.TitleBarHiddenInset(),
 			// Appearance:           mac.NSAppearanceNameDarkAqua,
 			// TitleBar: &mac.TitleBar{
 			// 	TitlebarAppearsTransparent: true,

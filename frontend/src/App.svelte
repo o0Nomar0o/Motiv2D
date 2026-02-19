@@ -228,7 +228,7 @@
         style:right={rightMargin}
         style:width={$bottomPanelClp ? "48px" : "unset"}
       >
-        <BottomPanel player={canvasComponent?.getPlayer()} />
+        <BottomPanel  />
       </div>
     {/if}
   </div>

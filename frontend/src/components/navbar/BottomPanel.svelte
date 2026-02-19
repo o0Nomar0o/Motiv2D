@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { fly, fade } from "svelte/transition";
+
   import SegmentedCtrl from "../elements/SegmentedCtrl.svelte";
+  import LogViewer from "../elements/Log.svelte";
   import TrackMixer from "../canvas/TrackMix.svelte";
   import {
-    mixerHeight,
+    logHeight,
     bottomPanelClp,
     selectedTrackId,
   } from "../../stores/appStore";
@@ -13,24 +14,53 @@
 
   const permanentOptions = [{ id: "LOGS", label: "Logs" }];
 
-  export let player: any;
+  export let dynamicTabs = [];
 
-  export let dynamicTabs = [
-    { id: "MIXER", label: "Track Mixer" },
-  ];
-
+  let logComponent;
+  let isResizing = false;
+  
   $: allOptions = [...permanentOptions, ...dynamicTabs];
   let activeTab = "LOGS";
+
+  function startResizing(event: MouseEvent) {
+    if ($bottomPanelClp) return;
+    isResizing = true;
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', stopResizing);
+    document.body.style.cursor = 'ns-resize';
+  }
+
+  function handleMouseMove(event: MouseEvent) {
+    if (!isResizing) return;
+    const newHeight = window.innerHeight - event.clientY;
+    if (newHeight > 100 && newHeight < window.innerHeight * 0.9) {
+      logHeight.set(newHeight);
+    }
+  }
+
+  function stopResizing() {
+    isResizing = false;
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', stopResizing);
+    document.body.style.cursor = 'default';
+  }
 </script>
 
 <section
   class="bottom-panel glass-morph"
   class:is-circle={$bottomPanelClp}
-  style="--p-height: 300px"
+  class:resizing={isResizing}
+  style="--p-height: {$logHeight}px"
 >
+  {#if !$bottomPanelClp}
+    <div class="resize-handle" on:mousedown={startResizing}>
+      <div class="drag-indicator"></div>
+    </div>
+  {/if}
+
   <header class="panel-header" class:centered={$bottomPanelClp}>
     {#if !$bottomPanelClp}
-      <div class="tabs-container" in:fade={{ duration: 150 }}>
+      <div class="tabs-container" >
         <SegmentedCtrl
           options={allOptions}
           bind:activeId={activeTab}
@@ -52,17 +82,15 @@
   </header>
 
   {#if !$bottomPanelClp}
-    <div
-      class="panel-viewport custom-scrollbar"
-      transition:fade={{ duration: 200 }}
-    >
+    <div class="panel-viewport custom-scrollbar">
       <div class="content-wrapper">
         {#if activeTab === "LOGS"}
-          <div class="mono-label">System Terminal > Ready</div>
+          <div class="mono-label">
+            <LogViewer bind:this={logComponent} />
+          </div>
         {:else if activeTab === "MIXER"}
-          <TrackMixer {player} bind:focusedTrackId={$selectedTrackId} />
-        {:else if activeTab === "ANIM"}
-          <div class="timeline-view">Animation Sequences</div>
+          {:else if activeTab === "ANIM"}
+          <div class="timeline-view"></div>
         {/if}
       </div>
     </div>
@@ -78,6 +106,7 @@
     transform-origin: bottom right;
     margin-left: auto;
     overflow: hidden;
+    position: relative;
 
     transition:
       width 0.5s cubic-bezier(0.16, 1, 0.3, 1),
@@ -88,8 +117,46 @@
     transform: translateZ(0);
   }
 
+  .bottom-panel.resizing {
+    transition: none !important;
+  }
+
+  /* RESIZE HANDLE & INDICATOR */
+  .resize-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 14px;
+    cursor: ns-resize;
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .drag-indicator {
+    width: 32px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 100px;
+    transition: 
+      width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+      height 0.3s ease,
+      background 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+
+  .resize-handle:hover .drag-indicator,
+  .resizing .drag-indicator {
+    width: 60px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.4);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+  }
+
   .glass-morph {
-    background: rgba(15, 15, 15, 0.4);
+    background: rgba(10, 10, 10, 0.5);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -114,7 +181,6 @@
   }
 
   .panel-header {
-    /* Header height must match circle height when collapsed to prevent internal jumping */
     height: 48px;
     min-height: 30px;
     display: flex;

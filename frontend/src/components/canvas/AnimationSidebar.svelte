@@ -23,9 +23,8 @@
 
   let focusedTrackId = 0;
   // let mixerHeight = 300;
-  
   $: selectedTrackId.set(focusedTrackId);
-
+  
   function playAnimation(name: string) {
     if (!player) return;
     const trackId = focusedTrackId;
@@ -33,7 +32,7 @@
     player.playAnimation(trackId, name, true);
 
     currentAnimName = name;
-    
+
     characterSettings.update((all) => ({
       ...all,
       [$activeCharacter.id]: {
