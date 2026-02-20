@@ -338,3 +338,58 @@ function createLogStore() {
 }
 
 export const logStore = createLogStore();
+
+export function generateShareCode(data: RemoteSource | RemoteSource[]): string {
+  const isArray = Array.isArray(data);
+  const items = isArray ? data : [data];
+
+  const compressed = items.map(r => {
+
+    const match = r.baseUrl.match(/repos\/([^\/]+\/[^\/]+)\/git\/trees\/([^\?]+)/);
+    const path = match ? `${match[1]}/${match[2]}` : r.baseUrl;
+
+    return {
+      n: r.name,
+      p: path,
+      m: r.mode === 'auto' ? 0 : 1,
+      f: r.folderPaths,
+      u: r.metadataUrl ? r.metadataUrl : undefined 
+    };
+  });
+
+  const json = JSON.stringify(isArray ? compressed : compressed[0]);
+  return "M2D:" + btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+export function decodeShareCode(code: string): RemoteSource[] {
+  if (!code.startsWith("M2D:")) return [];
+
+  try {
+    const base64 = code.split(":")[1].replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = JSON.parse(atob(base64));
+    const items = Array.isArray(decoded) ? decoded : [decoded];
+
+    return items.map(p => {
+
+      const parts = p.p.split('/');
+      const repoPath = `${parts[0]}/${parts[1]}`;
+      const branch = parts[2];
+
+      return {
+        id: crypto.randomUUID(),
+        name: p.n,
+        active: true,
+        baseUrl: `https://api.github.com/repos/${repoPath}/git/trees/${branch}?recursive=1`,
+        remoteRoot: `https://raw.githubusercontent.com/${repoPath}/${branch}/`,
+        metadataUrl: p.u || "",
+        mode: p.m === 0 ? "auto" : "manual",
+        folderPaths: p.f || [],
+        mappingRules: [],
+        lastUpdated: Date.now()
+      };
+    });
+  } catch (e) {
+    console.error("Failed to decode share code:", e);
+    return [];
+  }
+}

@@ -19,7 +19,7 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-const CurrentAppVersion = "1.0.1"
+const CurrentAppVersion = "1.0.0"
 
 var BuildVariant = "standard"
 
@@ -62,6 +62,7 @@ func (u *UpdaterService) getPlatformKey() string {
 		return fmt.Sprintf("windows_%s_%s", BuildVariant, runtime.GOARCH)
 	}
 	// Matches your YAML: darwin_arm64 or darwin_amd64
+	fmt.Printf("darwin_%s", runtime.GOARCH)
 	return fmt.Sprintf("darwin_%s", runtime.GOARCH)
 }
 
@@ -93,7 +94,10 @@ func (u *UpdaterService) CheckForUpdates() (*CheckUpdateResponse, error) {
 	}
 
 	platformKey := u.getPlatformKey()
+	fmt.Printf("DEBUG: App is searching for platform key: '%s'\n", platformKey)
 	data, exists := m.Platforms[platformKey]
+	fmt.Printf("DEBUG: PlatformKey Generated: [%s] | Found in Manifest: %v\n", platformKey, exists)
+
 	if !exists {
 		return &CheckUpdateResponse{Available: false}, nil
 	}
@@ -103,6 +107,9 @@ func (u *UpdaterService) CheckForUpdates() (*CheckUpdateResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("remote version error: %w", err)
 	}
+
+	isNewer := vRemote.GT(vCurrent)
+	fmt.Printf("DEBUG: Version Check - Current: %s | Remote: %s | IsNewer: %v\n", vCurrent, vRemote, isNewer)
 
 	return &CheckUpdateResponse{
 		Available: vRemote.GT(vCurrent),

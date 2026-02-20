@@ -7,6 +7,7 @@
   import iconEdit from "../../assets/images/edit.svg";
   import iconCross from "../../assets/images/cross.svg";
   import iconCheck from "../../assets/images/check.svg";
+  import iconShare from "../../assets/images/share.svg";
 
   import {
     remoteSources,
@@ -14,10 +15,11 @@
     saveRemoteSource,
     deleteRemoteSource,
     type RemoteSource,
+    generateShareCode,
   } from "../../stores/appStore";
 
   let isCreating = false;
-  let editingId: string | null = null; 
+  let editingId: string | null = null;
   let deletingId: string | null = null;
 
   let tempName = "";
@@ -27,8 +29,8 @@
   let folderPaths = [];
   let mappingRules = [];
 
-  let useJsDelivr = false; 
-  let githubBranch = "main"; 
+  let useJsDelivr = false;
+  let githubBranch = "main";
 
   onMount(() => {
     initRemotes();
@@ -109,7 +111,6 @@
   }
 
   function editRemote(source: RemoteSource) {
-
     editingId = source.id;
     tempName = source.name;
     tempMetadataUrl = source.metadataUrl;
@@ -136,11 +137,9 @@
         : [];
 
     isCreating = true;
-
   }
 
   async function handleSave() {
-
     const { api, root } = deriveEndpoints(tempUrl, useJsDelivr, githubBranch);
 
     const finalMetadataUrl = convertToRaw(tempMetadataUrl);
@@ -170,6 +169,22 @@
       deletingId = null;
     } catch (err) {
       console.error("Delete failed", err);
+    }
+  }
+
+  let copiedId: string | null = null;
+
+  async function handleShare(remote: RemoteSource) {
+    const code = generateShareCode(remote);
+
+    try {
+      await navigator.clipboard.writeText(code);
+      copiedId = remote.id;
+      setTimeout(() => {
+        if (copiedId === remote.id) copiedId = null;
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
     }
   }
 </script>
@@ -213,6 +228,17 @@
             </div>
           </div>
           <div class="card-controls">
+            <button
+              class="action-icon share-btn"
+              class:is-copied={copiedId === remote.id}
+              on:click={() => handleShare(remote)}
+              title="Copy Share Code"
+            >
+              <div class="icon-mask sm" style="--icon: url({iconShare})"></div>
+              {#if copiedId === remote.id}
+                <span class="copy-badge">COPIED</span>
+              {/if}
+            </button>
             <button class="action-icon" on:click={() => editRemote(remote)}>
               <div class="icon-mask sm" style="--icon: url({iconEdit})"></div>
             </button>
@@ -983,4 +1009,5 @@
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
   }
+  
 </style>
