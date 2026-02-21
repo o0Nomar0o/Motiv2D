@@ -31,6 +31,10 @@ export const rightPanelClp = writable(false);
 export const bottomPanelClp = writable(false);
 
 export const currentView = writable<"DASHBOARD" | "SPINE">("DASHBOARD");
+export const blurType = writable<"frosted" | "gaussian" | "pixel" | "none">("none");
+export const backgroundBlur = writable(100);
+export const backgroundColor = writable<string>("#080708");
+export const backgroundOpacity = writable(100);
 
 export const mixerHeight = writable(300);
 export const logHeight = writable(300);
@@ -38,6 +42,17 @@ export const logHeight = writable(300);
 export const setView = (view: "DASHBOARD" | "SPINE") => {
   currentView.set(view);
 };
+
+export function getRgba(hex: string, opacity: number): string {
+
+  const cleanHex = hex.replace('#', '');
+  
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+  
+  return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+}
 
 export const spineState = writable({
   selectedSkel: null,

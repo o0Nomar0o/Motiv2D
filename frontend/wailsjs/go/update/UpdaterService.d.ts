@@ -5,6 +5,8 @@ import {context} from '../models';
 
 export function CheckForUpdates():Promise<update.CheckUpdateResponse>;
 
+export function GetMetadata():Promise<update.AppMetadata>;
+
 export function ProcessUpdate(arg1:update.UpdateInfo):Promise<void>;
 
 export function Startup(arg1:context.Context):Promise<void>;

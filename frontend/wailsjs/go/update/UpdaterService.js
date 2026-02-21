@@ -6,6 +6,10 @@ export function CheckForUpdates() {
   return window['go']['update']['UpdaterService']['CheckForUpdates']();
 }
 
+export function GetMetadata() {
+  return window['go']['update']['UpdaterService']['GetMetadata']();
+}
+
 export function ProcessUpdate(arg1) {
   return window['go']['update']['UpdaterService']['ProcessUpdate'](arg1);
 }

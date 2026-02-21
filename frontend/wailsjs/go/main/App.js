@@ -13,3 +13,7 @@ export function Greet(arg1) {
 export function Platform() {
   return window['go']['main']['App']['Platform']();
 }
+
+export function SetWindowColor(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['SetWindowColor'](arg1, arg2, arg3, arg4);
+}

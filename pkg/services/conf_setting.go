@@ -29,7 +29,7 @@ func (s *CLIService) GetConfigPath() (string, error) {
 		return "", fmt.Errorf("could not find user config directory: %w", err)
 	}
 
-	appFolder := filepath.Join(configDir, "AssetStudioGo")
+	appFolder := filepath.Join(configDir, "Motiv2d")
 
 	if _, err := os.Stat(appFolder); os.IsNotExist(err) {
 		if err := os.MkdirAll(appFolder, 0755); err != nil {
@@ -76,6 +76,7 @@ func GetDefaultShortcuts() []Shortcut {
 	return []Shortcut{
 		{ID: "toggle_left",		Label: "Collapse/Expand Left",			Modifiers: []string{},		Key: ";"},
 		{ID: "toggle_right",	Label: "Collapse/Expand Right",			Modifiers: []string{},		Key: "'"},
+		{ID: "toggle_bottom",	Label: "Collapse/Expand Bottom",		Modifiers: []string{},		Key: "/"},
 		{ID: "toggle_pma",		Label: "Toggle PMA",					Modifiers: []string{"ALT"}, Key: "R"},
 		{ID: "import",			Label: "Import Asset",					Modifiers: []string{"CTRL"},Key: "I"},
 		{ID: "import_local",	Label: "Import Local Asset",			Modifiers: []string{},	 	Key: "I"},

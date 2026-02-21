@@ -115,7 +115,8 @@
 
 :root {
     /* Colors */
-    --bg-window:          #080708;           
+    --bg-window:            transparent;               
+    --bg-window-2:          #080708;           
     --bg-sidebar:           transparent;         
     --bg-card:            #1e1e1e;             
     --accent:             #007aff;  
@@ -141,7 +142,7 @@ html {
     overscroll-behavior:    none;
     height:                 100%;
     user-select:            none;
-    -webkit-user-select:    none;
+    -webkit-user-select:    none;  
 }
 
 body {

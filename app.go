@@ -79,3 +79,7 @@ appMenu.AddText("Check for Updates", keys.CmdOrCtrl("u"), func(_ *menu.CallbackD
 
 	return AppMenu
 }
+
+func (a *App) SetWindowColor(r, g, b uint8, a_alpha uint8) {
+	wailsRuntime.WindowSetBackgroundColour(a.ctx, r, g, b, a_alpha)
+}

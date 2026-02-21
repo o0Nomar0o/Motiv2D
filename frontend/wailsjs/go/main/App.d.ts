@@ -6,3 +6,5 @@ export function CurrentPlatform():Promise<string>;
 export function Greet(arg1:string):Promise<string>;
 
 export function Platform():Promise<string>;
+
+export function SetWindowColor(arg1:number,arg2:number,arg3:number,arg4:number):Promise<void>;

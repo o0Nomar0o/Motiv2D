@@ -5,19 +5,26 @@
     FetchRemoteAssets,
     DownloadRemoteAsset,
     FinalizeAsset,
+    RefreshSource,
   } from "../../../wailsjs/go/remote/RemoteHandler";
-  import { characterLibrary, activeCharacter, remoteSources } from "../../stores/appStore";
+  import {
+    characterLibrary,
+    activeCharacter,
+    remoteSources,
+  } from "../../stores/appStore";
 
   import iconUser from "../../assets/images/user.svg";
   import iconDownload from "../../assets/images/download.svg";
   import iconCheck from "../../assets/images/check.svg";
   import iconGrid from "../../assets/images/grid.svg";
   import iconList from "../../assets/images/list.svg";
+  import iconRefresh from "../../assets/images/refresh.svg";
 
-  export let source = null; 
+  export let source = null;
   const dispatch = createEventDispatcher();
 
   let assets = [];
+  let displayedAssets = [];
   let loading = false;
   let statusMap = {};
   let searchQuery = "";
@@ -52,45 +59,91 @@
     await Promise.all(tasks);
   }
 
+  // >500 assets cause lag
+  // async function loadGallery() {
+  //   if (!source?.baseUrl) return;
+  //   loading = true;
+  //   selectedIds.clear();
+  //   selectedIds = selectedIds;
+
+  //   try {
+  //     const results = await FetchRemoteAssets(
+  //       source.id,
+  //       source.name,
+  //       source.baseUrl,
+  //       source.metadataUrl,
+  //       source.remoteRoot,
+  //       source.mode,
+  //       source.folderPaths,
+  //       source.mappingRules,
+  //     );
+
+  //     assets = Array.isArray(results) ? results : [];
+  //     statusMap = Object.fromEntries(assets.map((a) => [a.id, "idle"]));
+  //   } catch (err) {
+  //     console.error("Gallery Load Error:", err);
+  //     assets = [];
+  //   } finally {
+  //     loading = false;
+  //   }
+  // }
+
+  // $: filteredAssets = assets.filter((a) => {
+  //   const t = searchQuery.toLowerCase().trim();
+  //   return (
+  //     !t ||
+  //     a.displayName?.toLowerCase().includes(t) ||
+  //     a.id?.toLowerCase().includes(t)
+  //   );
+  // });
+  //
+  
   async function loadGallery() {
     if (!source?.baseUrl) return;
+    
     loading = true;
+    assets = [];
+    displayedAssets = [];
     selectedIds.clear();
     selectedIds = selectedIds;
 
     try {
 
       const results = await FetchRemoteAssets(
-        source.id, 
-        source.name,
-        source.baseUrl,
-        source.metadataUrl,
-        source.remoteRoot,
-        source.mode, 
-        source.folderPaths,
-        source.mappingRules 
+        source.id, source.name, source.baseUrl, source.metadataUrl,
+        source.remoteRoot, source.mode, source.folderPaths, source.mappingRules
       );
+
+      const rawAssets = Array.isArray(results) ? results : [];
       
-      assets = Array.isArray(results) ? results : [];
-      statusMap = Object.fromEntries(assets.map((a) => [a.id, "idle"]));
+      const newStatus = {};
+      for (let i = 0; i < rawAssets.length; i++) {
+        newStatus[rawAssets[i].id] = "idle";
+      }
+      statusMap = newStatus;
+      assets = rawAssets;
+
+      displayedAssets = assets.slice(0, 30);
+      
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          displayedAssets = assets; 
+        }, 50);
+      });
+
     } catch (err) {
       console.error("Gallery Load Error:", err);
-      assets = [];
     } finally {
       loading = false;
     }
   }
 
-  $: if (source) loadGallery();
-
-  $: filteredAssets = assets.filter((a) => {
+  $: filteredAssets = (searchQuery ? assets : displayedAssets).filter((a) => {
     const t = searchQuery.toLowerCase().trim();
-    return (
-      !t ||
-      a.displayName?.toLowerCase().includes(t) ||
-      a.id?.toLowerCase().includes(t)
-    );
+    return !t || a.displayName?.toLowerCase().includes(t) || a.id?.toLowerCase().includes(t);
   });
+  
+  $: if (source) loadGallery();
 
   async function handleAction(asset) {
     if (
@@ -103,7 +156,6 @@
     statusMap = statusMap;
 
     try {
-
       await DownloadRemoteAsset({
         ...asset,
         sourceName: source.name,
@@ -113,7 +165,7 @@
       const local = await FinalizeAsset(source.name, asset.id);
 
       characterLibrary.update((x) =>
-        x.some((e) => e.id === local.id) ? x : [...x, local]
+        x.some((e) => e.id === local.id) ? x : [...x, local],
       );
       activeCharacter.set(local);
 
@@ -124,6 +176,21 @@
       console.error("Action Error:", err);
       statusMap[asset.id] = "idle";
       statusMap = statusMap;
+    }
+  }
+
+  async function handleRefresh() {
+    if (!source?.baseUrl) return;
+    loading = true;
+    try {
+      await RefreshSource(source.baseUrl, source.folderPaths);
+      await loadGallery();
+
+      console.log(`Cache cleared and gallery refreshed for: ${source.name}`);
+    } catch (err) {
+      console.error("Refresh Error:", err);
+    } finally {
+      loading = false;
     }
   }
 </script>
@@ -157,14 +224,23 @@
         <div class="icon-mask" style="--icon:url({iconList})"></div>
       </button>
     </div>
+
+    <div class="gallery-control">
+      <button
+        class="refresh-btn"
+        data-tooltip="Refresh Gallery"
+        on:click={handleRefresh}
+      >
+        <div class="icon-mask" style="--icon:url({iconRefresh})"></div>
+      </button>
+    </div>
   </header>
-  
 
   <main class="viewport custom-scrollbar">
     {#if loading}
       <div class="loading-state" in:fade>
         <div class="spinner"></div>
-        <p>SYNCHRONIZING</p>
+        <p>Fetching Assets</p>
       </div>
     {:else}
       <div class="asset-display {viewMode}">
@@ -241,12 +317,9 @@
       </div>
     </footer>
   {/if}
-
-
 </div>
 
 <style>
-
   .gallery-wrapper {
     display: flex;
     flex-direction: column;
@@ -254,7 +327,6 @@
     position: relative;
     overflow-x: hidden;
     overflow-y: auto;
-    
   }
 
   .gallery-toolbar {
@@ -299,6 +371,19 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
   }
 
+  .gallery-control {
+    width: 30px;
+    height: 30px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 1rem;
+    position: relative;
+    display: flex;
+    padding: 4px;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
   .viewport {
     flex: 1;
     overflow-y: auto;
@@ -339,6 +424,9 @@
     cursor: pointer;
     width: 100%;
     box-sizing: border-box;
+
+    content-visibility: auto;
+    contain-intrinsic-size: 160px 230px;
   }
 
   .asset-card:hover {
@@ -358,7 +446,7 @@
     text-align: center;
     padding: 24px 16px;
     max-width: 220px;
-    min-height: 230px; 
+    min-height: 230px;
   }
 
   .list .asset-card {
@@ -486,7 +574,6 @@
     border-radius: 20px;
     display: flex;
     align-items: center;
-;
   }
 
   .batch-count {
@@ -557,7 +644,37 @@
     color: #fff;
   }
 
+  .refresh-btn {
+    flex: 1;
+    z-index: 2;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    color: #fff;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .refresh-btn:hover {
+    color: color-mix(in srgb, var(--accent), transparent 10%);
+  }
+
+  .refresh-btn:hover .icon-mask {
+    animation: spin 1s linear infinite;
+    transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform: translateX(0) translateY(0);
+  }
+
+  .gallery-control:hover {
+    background-color: color-mix(in srgb, var(--accent), transparent 86%);
+  }
+
   .icon-mask {
+    transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
     display: inline-block;
     mask: var(--icon) no-repeat center / contain;
     -webkit-mask: var(--icon) no-repeat center / contain;
@@ -604,12 +721,20 @@
     }
   }
 
-
   .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 </style>

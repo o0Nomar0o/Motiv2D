@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -172,15 +173,32 @@ func parsePngsFromAtlas(path string) []string {
 	return pngs
 }
 
-func (s *SpineCommons) RecursiveImport() error {
+func (s *SpineCommons) ImportFromDialog() error {
+	return s.RecursiveImport("", false)
+}
 
-	dir, err := runtime.OpenDirectoryDialog(s.ctx, runtime.OpenDialogOptions{
-		Title: "Select Root Folder containing Spine Assets",
-	})
+func (s *SpineCommons) ImportFromCache(cachePath string) error {
+	return s.RecursiveImport(cachePath, true)
+}
 
-	if err != nil || dir == "" {
-		return err
+func (s *SpineCommons) RecursiveImport(dir string, isRemote bool) error {
+
+	// dir, err := runtime.OpenDirectoryDialog(s.ctx, runtime.OpenDialogOptions{
+	// 	Title: "Select Root Folder containing Spine Assets",
+	// })
+	if dir == "" {
+		var err error
+		dir, err = runtime.OpenDirectoryDialog(s.ctx, runtime.OpenDialogOptions{
+			Title: "Select Root Folder containing Spine Assets",
+		})
+		if err != nil || dir == "" {
+			return err
+		}
 	}
+
+	// if err != nil || dir == "" {
+	// 	return err
+	// }
 
 	go func() {
 
@@ -198,7 +216,20 @@ func (s *SpineCommons) RecursiveImport() error {
 					asset := s.ProcessSingleAsset(path)
 
 					if asset != nil {
+						if isRemote {
+							asset.IsRemote = isRemote
+
+							relPath, err := filepath.Rel(dir, path)
+							if err == nil {
+								parts := strings.Split(filepath.ToSlash(relPath), "/")
+								if len(parts) >= 2 {
+									// The first part of the relative path is your sourceName
+									asset.SourceName = parts[0]
+								}
+							}
+						}
 						runtime.EventsEmit(s.ctx, "asset_discovered", asset)
+						time.Sleep(1 * time.Millisecond)
 					}
 
 				}
@@ -210,7 +241,7 @@ func (s *SpineCommons) RecursiveImport() error {
 		if err != nil {
 			fmt.Println("Scan error:", err)
 		}
-		
+
 		runtime.EventsEmit(s.ctx, "scan_complete", true)
 	}()
 
@@ -231,7 +262,7 @@ func (s *SpineCommons) ProcessSingleAsset(skelPath string) *SpineMetadata {
 	}
 
 	results := s.GroupFilesIntoAssets(localPaths)
-	
+
 	for _, r := range results {
 		if r.ID == baseName {
 			return &r

@@ -60,7 +60,7 @@
 
   // $: leftMargin = $leftPanelClp ? "1rem" : "calc(1.5rem + 305px)";
   $: leftMargin = $bottomPanelClp
-    ? "auto" // This lets it slide to the right
+    ? "auto"
     : $leftPanelClp
       ? "1rem"
       : "calc(1.5rem + 305px)";
@@ -97,6 +97,7 @@
       import: () => viewerRef?.openImport(),
       settings: () => viewerRef?.openSettings(),
       toggle_right: () => rightSidebarRef?.collapse_toggle(),
+      toggle_bottom: () => bottomPanelClp.set(!$bottomPanelClp),
       center: () => canvasComponent?.centerCharacter(),
       next_asset: () => charSidebarRef?.nextCharacter(),
       previous_asset: () => charSidebarRef?.previousCharacter(),
@@ -165,6 +166,9 @@
 </script>
 
 <div class="window-root {platform}">
+  {#if $isSettingsOpen || $isImportOpen }
+    <div class="global-drag-handle top-stack"></div>
+  {/if}
   <div class="global-drag-handle">
     <div class="left-group">
       {#if platform !== "darwin"}
@@ -323,6 +327,9 @@
     padding: 10px 8px 0 16px;
     box-sizing: border-box;
     pointer-events: auto;
+  }
+  .global-drag-handle.top-stack{
+    z-index: 99999;
   }
 
   .left-group,

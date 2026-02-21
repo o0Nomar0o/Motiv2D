@@ -5,9 +5,13 @@ import {context} from '../models';
 
 export function GroupFilesIntoAssets(arg1:Array<string>):Promise<Array<common.SpineMetadata>>;
 
+export function ImportFromCache(arg1:string):Promise<void>;
+
+export function ImportFromDialog():Promise<void>;
+
 export function ProcessSingleAsset(arg1:string):Promise<common.SpineMetadata>;
 
-export function RecursiveImport():Promise<void>;
+export function RecursiveImport(arg1:string,arg2:boolean):Promise<void>;
 
 export function SelectFiles():Promise<Array<common.SpineMetadata>>;
 

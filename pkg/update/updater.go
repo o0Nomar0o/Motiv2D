@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -19,7 +20,31 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+//go:embed version.json
+var versionData []byte
+type AppMetadata struct {
+	AppName        string `json:"appName"`
+	SemVer         string `json:"semVer"`
+	DisplayVersion string `json:"displayVersion"`
+	BuildDate      string `json:"buildDate"`
+	License        string `json:"license"`
+	Author         string `json:"author"`
+	Links          []MetadataLink `json:"links"`
+}
+
+type MetadataLink struct {
+	Label string `json:"label"`
+	URL   string `json:"url"`
+}
+
+func (u *UpdaterService) GetMetadata() (AppMetadata, error) {
+	var meta AppMetadata
+	err := json.Unmarshal(versionData, &meta)
+	return meta, err
+}
+
 const CurrentAppVersion = "1.0.0"
+
 
 var BuildVariant = "standard"
 
@@ -102,7 +127,14 @@ func (u *UpdaterService) CheckForUpdates() (*CheckUpdateResponse, error) {
 		return &CheckUpdateResponse{Available: false}, nil
 	}
 
-	vCurrent, _ := semver.Parse(CurrentAppVersion)
+	meta, err := u.GetMetadata()
+    if err != nil {
+        return nil, fmt.Errorf("failed to read local version: %w", err)
+    }
+
+	vCurrent, err := semver.Parse(meta.SemVer)
+	// vCurrent, _ := semver.Parse(CurrentAppVersion)
+
 	vRemote, err := semver.Parse(m.Version)
 	if err != nil {
 		return nil, fmt.Errorf("remote version error: %w", err)

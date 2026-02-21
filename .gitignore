@@ -1,7 +1,10 @@
 build/bin
 node_modules
 frontend/dist
-frontend/src/lib/ZIPS
+frontend/src/lib/ZIPS/
+macos-copy
+macos-copy/
+app_darwin_old.go
 
 # Wails Binaries
 build/bin/
@@ -21,7 +24,7 @@ frontend/node_modules/
 .DS_Store
 
 # Swift build artifacts
-Swift/*.o
-Swift/*.a
-Swift/*-Swift.h
+macos/*.o
+macos/*.a
+macos/*-Swift.h
 

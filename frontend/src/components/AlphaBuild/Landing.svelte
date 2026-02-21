@@ -3,11 +3,18 @@
   import { fly } from "svelte/transition";
   import Shell from "../modals/ChangelogModal.svelte";
   import changelogRaw from "../../assets/CHANGELOG.md?raw";
+  import { onMount } from "svelte";
+  import { GetMetadata } from "../../../wailsjs/go/update/UpdaterService";
 
   let scrollY = 0;
+  let metadata = null;
+
+  onMount(async () => {
+    metadata = await GetMetadata();
+    console.log("Metadata loaded:", metadata);
+  });
 
   function parseChangelog(raw: string) {
-
     const blocks = raw.split(/\n---+\n/).filter((b) => b.trim().length > 0);
 
     return blocks
@@ -15,16 +22,13 @@
         const titleMatch = block.match(/^#\s+(.*)\/(v.*)/m);
 
         const summaryMatch = block.match(
-          /### (HIGHLIGHTS|SUMMARY)\n([\s\S]*?)(?=\n###|---|$)/
+          /### (HIGHLIGHTS|SUMMARY)\n([\s\S]*?)(?=\n###|---|$)/,
         );
 
         let task = "No summary available.";
 
         if (summaryMatch) {
-          task = summaryMatch[2]
-            .trim()
-            .replace(/\*\*/g, "") 
-            .replace(/`+/g, ""); 
+          task = summaryMatch[2].trim().replace(/\*\*/g, "").replace(/`+/g, "");
         }
 
         return {
@@ -34,7 +38,7 @@
         };
       })
       .filter((item) => item.v !== null);
-    }
+  }
 
   const updates = parseChangelog(changelogRaw);
 
@@ -48,7 +52,6 @@
     isOpenLog = true;
     console.log("OPENING");
   }
-
 </script>
 
 <svelte:window bind:scrollY />
@@ -60,13 +63,21 @@
     <section class="hero-section">
       <div class="top-meta mono" in:fly={{ y: -20, duration: 800 }}>
         <div class="meta-item">PROJECT: MOTIV.2D</div>
-        <div class="meta-item">STATUS: ALPHA_STABLE</div>
-        <div class="meta-item">BUILD: 2026.02</div>
+        <div class="meta-item">STATUS: STABLE</div>
+        {#if metadata}
+          <div class="meta-item">
+            BUILD: {metadata.buildDate}
+          </div>
+        {:else}
+          <div class="meta-item">BUILD: Loading...</div>
+        {/if}
       </div>
 
       <div class="title-block">
         <h1 class="giant-display">
-          <span class="outline">MO</span>TIV<span class="dot">.</span><span class="accent-title">2d</span>
+          <span class="outline">MO</span>TIV<span class="dot">.</span><span
+            class="accent-title">2d</span
+          >
         </h1>
         <div class="sub-hero">
           <p class="elegant-text">
@@ -141,12 +152,17 @@
 <Shell bind:isOpen={isOpenLog} />
 
 <style>
-
   :global(body) {
-    background-color: #030303;
+    background-color: var(--bg-window);
     color: #ffffff;
     margin: 0;
     overflow-x: hidden;
+  }
+
+  .content-viewport {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
   }
 
   .app-frame {
@@ -155,6 +171,10 @@
     box-sizing: border-box;
     position: relative;
     overflow-y: auto;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    background-color: var(--bg-window-2);
   }
 
   .outer-border {
@@ -191,15 +211,20 @@
     letter-spacing: -0.02em;
     text-transform: uppercase;
     padding-top: 100px;
+    text-align: center;
   }
 
-  .accent-title{
+  .accent-title {
     color: var(--accent-2);
   }
 
   .outline {
     color: transparent;
     -webkit-text-stroke: 1px rgba(255, 255, 255, 0.3);
+    filter: blur(0);
+    transform: translateZ(0);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   .dot {

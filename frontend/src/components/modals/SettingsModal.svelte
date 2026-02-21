@@ -1,12 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Platform } from "../../../wailsjs/go/main/App";
+  import { Platform, SetWindowColor } from "../../../wailsjs/go/main/App";
   import {
     isSettingsOpen,
     configStore,
     updateShortcutInStore,
     resetShortcutsAction,
     initConfig,
+    backgroundOpacity,
+    backgroundColor,
   } from "../../stores/appStore";
   import { CheckSourceHealth } from "../../../wailsjs/go/remote/RemoteHandler";
 
@@ -21,6 +23,7 @@
   import iconOption from "../../assets/images/option.svg";
   import RemoteSetting from "./RemoteSettings.svelte";
   import ColorPicker from "./ColorPicker.svelte";
+  import BlurControl from "./BlurSetting.svelte";
 
   export let isOpen = false;
   let activeTab = "controls";
@@ -29,6 +32,26 @@
   let recordingId = null;
   let tempMods = [];
   let tempKey = "";
+
+  $: {
+    const hex = $backgroundColor;
+
+    const alphaUint8 = Math.round(($backgroundOpacity / 100) * 255);
+
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+
+    SetWindowColor(r, g, b, alphaUint8);
+  }
+
+  function handleInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    $backgroundOpacity = Math.min(
+      100,
+      Math.max(0, parseInt(target.value) || 0),
+    );
+  }
 
   onMount(async () => {
     currentOS = await Platform();
@@ -81,11 +104,10 @@
   }
 
   function resetShortcuts(
-    event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+    event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement },
   ) {
     throw new Error("Function not implemented.");
   }
-
 </script>
 
 <svelte:window on:keydown={handleGlobalKeyDown} />
@@ -126,14 +148,48 @@
           </header>
           <div class="content-area">
             <div class="setting-row">
+              <!-- svelte-ignore a11y-label-has-associated-control -->
               <label class="label">Background Theme</label>
+              <div class="line-filler"></div>
+              <ColorPicker
+                on:change={(e) => {
+                  configStore.update((s) => ({ ...s, viewportBg: e.detail }));
+                }}
+              />
             </div>
-            <ColorPicker
-              value={$configStore.viewportBg || "#121212"}
-              on:change={(e) => {
-                configStore.update((s) => ({ ...s, viewportBg: e.detail }));
-              }}
-            />
+
+            <div class="setting-row">
+              <label class="label">Background Opacity</label>
+              <div class="line-filler"></div>
+
+              <div class="glass-control-group">
+                <div class="slider-container">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    bind:value={$backgroundOpacity}
+                    class="glass-slider"
+                  />
+                </div>
+                <input
+                  type="number"
+                  value={$backgroundOpacity}
+                  on:input={(e) =>
+                    backgroundOpacity.set(parseInt(e.currentTarget.value) || 0)}
+                  min="0"
+                  max="100"
+                  class="glass-number-input"
+                />
+                <span class="percent-symbol">%</span>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <label class="label">Background Blur</label>
+              <div class="line-filler"></div>
+              <BlurControl />
+            </div>
           </div>
         {/if}
 
@@ -331,7 +387,6 @@
     padding: 12px 20px;
     background: rgba(255, 255, 255, 0.03);
     border-radius: 16px;
-    cursor: pointer;
     border: 1px solid transparent;
   }
 
@@ -421,7 +476,7 @@
     height: 10px;
     color: #444;
     background-color: #444;
-  } 
+  }
   .record-icon {
     width: 18px;
     height: 18px;
@@ -481,13 +536,86 @@
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
-  .pill-input {
-    background: #1a1a1a;
-    border: 1px solid #333;
+  .glass-control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+
+  .glass-number-input::-webkit-outer-spin-button,
+  .glass-number-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .glass-number-input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .glass-number-input {
+    background: transparent;
+    border: none;
     color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
+    width: 32px;
+    font-size: 0.85rem;
+    text-align: center;
     outline: none;
-    width: 180px;
+  }
+
+  .percent-symbol {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.7rem;
+    margin-right: 4px;
+  }
+
+  .slider-container {
+    display: flex;
+    align-items: center;
+    width: 100px;
+  }
+
+  .glass-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .glass-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 6px; /* Start as a circle */
+    border: 1px solid rgba(255, 255, 255, 0.4);
+
+    /* The "Liquid" highlight */
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.8),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+
+    transition:
+      width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      border-radius 0.3s ease;
+  }
+
+  .glass-slider:active::-webkit-slider-thumb {
+    width: 24px;
+    height: 14px;
+    border-radius: 8px;
+    background: #ffffff;
+
+    box-shadow:
+      inset 0 2px 2px rgba(255, 255, 255, 1),
+      inset 0 -3px 6px rgba(0, 0, 0, 0.15);
   }
 </style>

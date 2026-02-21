@@ -8,6 +8,7 @@
   import iconCross from "../../assets/images/cross.svg";
   import iconCheck from "../../assets/images/check.svg";
   import iconShare from "../../assets/images/share.svg";
+  import iconImport from "../../assets/images/import.svg";
 
   import {
     remoteSources,
@@ -16,6 +17,7 @@
     deleteRemoteSource,
     type RemoteSource,
     generateShareCode,
+    decodeShareCode,
   } from "../../stores/appStore";
 
   let isCreating = false;
@@ -187,6 +189,40 @@
       console.error("Failed to copy:", err);
     }
   }
+
+  let isExpanded = false;
+  let importValue = "";
+  let importRef: HTMLInputElement;
+
+  function toggleImport() {
+    isExpanded = !isExpanded;
+    if (isExpanded) {
+      setTimeout(() => importRef?.focus(), 400); // Focus after animation
+    }
+  }
+
+  function handleImportInput() {
+    if (!importValue.startsWith("M2D:")) return;
+
+    const imported = decodeShareCode(importValue);
+    if (imported && imported.length > 0) {
+      const data = imported[0];
+      tempName = data.name;
+      discoveryMode = data.mode;
+      folderPaths = data.folderPaths || [];
+      tempMetadataUrl = data.metadataUrl || "";
+
+      const ghMatch = data.baseUrl.match(/repos\/([^\/]+)\/([^\/]+)/);
+      tempUrl = ghMatch
+        ? `https://github.com/${ghMatch[1]}/${ghMatch[2]}`
+        : data.baseUrl;
+      useJsDelivr = data.remoteRoot.includes("jsdelivr");
+
+      // Fluidly retract after success
+      isExpanded = false;
+      importValue = "";
+    }
+  }
 </script>
 
 <header class="tab-header">
@@ -290,6 +326,35 @@
     </div>
   {:else}
     <div class="creation-ui">
+      {#if !editingId}
+        <div class="import-wrapper-left">
+          <div class="liquid-rail">
+            <div class="glass-pill" class:expanded={isExpanded}>
+              <button class="pill-trigger" on:click={toggleImport}>
+                <div
+                  class="icon-mask white-icon"
+                  style="--icon: url({isExpanded ? iconCross : iconImport})"
+                ></div>
+                <span class="pill-label">
+                  {isExpanded ? "Cancel Import" : "Import from code"}
+                </span>
+              </button>
+
+              {#if isExpanded}
+                <input
+                  bind:this={importRef}
+                  type="text"
+                  class="liquid-input"
+                  placeholder="Paste M2D code..."
+                  bind:value={importValue}
+                  on:input={handleImportInput}
+                />
+              {/if}
+            </div>
+          </div>
+        </div>
+      {/if}
+
       <div class="ct-row">
         <div class="input-block">
           <span class="tiny-tag">Display Name</span>
@@ -1009,5 +1074,130 @@
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px;
   }
-  
+
+  .import-wrapper-left {
+    display: flex;
+    justify-content: flex-start; /* Moved to left */
+    margin-bottom: 12px;
+    height: 40px;
+  }
+
+  /* The "Rail" adds decoration so it doesn't look like a floating lonely circle */
+  .liquid-rail {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 20px;
+    padding: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+  }
+
+  .glass-pill {
+    display: flex;
+    align-items: center;
+    width: 36px; /* Sizing tightened for elegance */
+    height: 36px;
+    /* background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1); */
+    border-radius: 18px;
+    overflow: hidden;
+    transition:
+      width 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      background 0.3s ease,
+      border-color 0.4s ease;
+  }
+
+  .glass-pill:hover:not(.expanded) {
+    width: 155px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-pill.expanded {
+    width: 450px;
+    /* background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.2); */
+  }
+
+  .pill-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 10px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    height: 100%;
+    border-radius: 18px;
+    transition:
+      width 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+      background 0.3s ease,
+      border-color 0.4s ease;
+  }
+  .pill-trigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .white-icon {
+    width: 14px;
+    height: 14px;
+    background-color: #ffffff !important;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .glass-pill.expanded .white-icon {
+    transform: rotate(90deg); /* Subtle rotation for the cross icon */
+  }
+
+  .pill-label {
+    color: #fff;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .glass-pill:hover .pill-label,
+  .glass-pill.expanded .pill-label {
+    opacity: 0.6;
+  }
+
+  .liquid-input {
+    flex-grow: 1;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    color: #fff;
+    font-family: "MarklMono", monospace;
+    font-size: 11px;
+    margin-left: 10px;
+    padding-right: 15px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    animation: slideInFade 0.5s 0.2s forwards;
+  }
+
+  @keyframes slideInFade {
+    from {
+      transform: translateX(-10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .liquid-input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+  }
 </style>

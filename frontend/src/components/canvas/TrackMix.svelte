@@ -22,7 +22,7 @@
     progress: number;
   }
 
-  $: focusedTrackId = $selectedTrackId;
+  // $: focusedTrackId = $selectedTrackId;
 
   let tracks: Track[] = [];
 
@@ -212,7 +212,7 @@
     // );
     // player._mixerState = tracks;
     focusedTrackId = id;
-    selectedTrackId.set(id);
+    // selectedTrackId.set(id);
   }
 
   function togglePause(id: number) {

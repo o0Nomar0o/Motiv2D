@@ -83,6 +83,9 @@ type Manifest struct {
 	Assets []RemoteAsset `json:"assets"`
 }
 
+func (h *RemoteHandler) GetCacheFolder() string {
+    return h.storage.GetCacheFolder()
+}
 
 func (h *RemoteHandler) GetCachePath() (string, error) {
 
@@ -92,7 +95,7 @@ func (h *RemoteHandler) GetCachePath() (string, error) {
 		return "", fmt.Errorf("could not find user config directory: %w", err)
 	}
 
-	cacheFolder := filepath.Join(configDir, "AssetStudioGo", "cache_assets")
+	cacheFolder := filepath.Join(configDir, "Motiv2d", "cache_assets")
 
 	if _, err := os.Stat(cacheFolder); os.IsNotExist(err) {
 		if err := os.MkdirAll(cacheFolder, 0755); err != nil {

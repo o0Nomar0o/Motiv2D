@@ -26,6 +26,10 @@ export function FinalizeAsset(arg1, arg2) {
   return window['go']['remote']['RemoteHandler']['FinalizeAsset'](arg1, arg2);
 }
 
+export function GetCacheFolder() {
+  return window['go']['remote']['RemoteHandler']['GetCacheFolder']();
+}
+
 export function GetCachePath() {
   return window['go']['remote']['RemoteHandler']['GetCachePath']();
 }
@@ -36,6 +40,10 @@ export function GetCacheSize() {
 
 export function GetRemotes() {
   return window['go']['remote']['RemoteHandler']['GetRemotes']();
+}
+
+export function RefreshSource(arg1, arg2) {
+  return window['go']['remote']['RemoteHandler']['RefreshSource'](arg1, arg2);
 }
 
 export function RemoveAssetCache(arg1, arg2) {

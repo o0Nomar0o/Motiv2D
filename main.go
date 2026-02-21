@@ -130,7 +130,7 @@ func main() {
 			// TitleBar: &mac.TitleBar{
 			// 	TitlebarAppearsTransparent: true,
 			// 	HideTitle:                  true,
-			// 	FullSizeContent:            true, // This is critical
+			// 	FullSizeContent:            true,
 			// },
 			WebviewIsTransparent: true,
 		},

@@ -56,10 +56,10 @@ jobs:
       - name: Build Swift Static Library (macOS Only)
         if: matrix.os == 'macos-latest'
         run: |
-          swiftc -c Swift/window_control.swift -o Swift/window_control_arm64.o -target arm64-apple-macos15.0 -parse-as-library
-          swiftc -c Swift/window_control.swift -o Swift/window_control_x86_64.o -target x86_64-apple-macos15.0 -parse-as-library
-          lipo -create Swift/window_control_arm64.o Swift/window_control_x86_64.o -output Swift/window_control.o
-          ar rcs Swift/libwindow_control.a Swift/window_control.o
+          swiftc -c macos/window_control.swift -o macos/window_control_arm64.o -target arm64-apple-macos15.0 -parse-as-library
+          swiftc -c macos/window_control.swift -o macos/window_control_x86_64.o -target x86_64-apple-macos15.0 -parse-as-library
+          lipo -create macos/window_control_arm64.o macos/window_control_x86_64.o -output macos/window_control.o
+          ar rcs macos/libwindow_control.a macos/window_control.o
         
       - name: Build Wails
         shell: bash

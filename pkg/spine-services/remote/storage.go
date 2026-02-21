@@ -21,7 +21,7 @@ func NewConfigManager() (*ConfigManager, error) {
 		return nil, err
 	}
 
-	appPath := filepath.Join(configDir, "AssetStudioGo")
+	appPath := filepath.Join(configDir, "Motiv2d")
 	settingsPath := filepath.Join(appPath, "remotes.json")
 	cacheDir := filepath.Join(appPath, "cache")
 
@@ -93,6 +93,10 @@ func (c *ConfigManager) LoadCache(sourceID string, target interface{}) error {
 	defer file.Close()
 
 	return gob.NewDecoder(file).Decode(target)
+}
+
+func (c *ConfigManager) GetCacheFolder() string {
+    return c.CacheDir
 }
 
 func (c *ConfigManager) DeleteCache(sourceID string) error {

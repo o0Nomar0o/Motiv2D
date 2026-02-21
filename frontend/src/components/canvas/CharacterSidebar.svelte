@@ -48,7 +48,6 @@
 
   export async function removeCharacter(e: MouseEvent, char: any) {
     e.stopPropagation();
-
     if (char.isRemote) {
       try {
         try {

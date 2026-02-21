@@ -16,11 +16,15 @@ export function FetchRemoteAssets(arg1:string,arg2:string,arg3:string,arg4:strin
 
 export function FinalizeAsset(arg1:string,arg2:string):Promise<common.SpineMetadata>;
 
+export function GetCacheFolder():Promise<string>;
+
 export function GetCachePath():Promise<string>;
 
 export function GetCacheSize():Promise<string>;
 
 export function GetRemotes():Promise<Array<remote.RemoteSource>>;
+
+export function RefreshSource(arg1:string,arg2:Array<string>):Promise<void>;
 
 export function RemoveAssetCache(arg1:string,arg2:string):Promise<void>;
 

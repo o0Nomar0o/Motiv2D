@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,13 +11,14 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // func (h *RemoteHandler) CheckSourceHealth(url string) bool {
 // 	resp, err := h.client.Head(url)
-
+//
 // 	if err != nil || resp.StatusCode >= 400 {
 // 		resp, err = h.client.Get(url)
 // 		if err != nil || resp.StatusCode >= 400 {
@@ -29,16 +31,26 @@ import (
 
 func (h *RemoteHandler) CheckSourceHealth(url string) bool {
 
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	checkURL := strings.Replace(url, "api.github.com/repos/", "github.com/", 1)
+	checkURL = strings.Replace(checkURL, "git/trees/main?recursive=1", "", 1)
 
-	resp, err := h.client.Do(req)
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	req, _ := http.NewRequest("HEAD", checkURL, nil)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
 	defer resp.Body.Close()
 
-	return resp.StatusCode >= 200 && resp.StatusCode < 400
+	return resp.StatusCode == http.StatusOK
 }
 
 func (h *RemoteHandler) FetchRemoteAssets(
@@ -51,8 +63,19 @@ func (h *RemoteHandler) FetchRemoteAssets(
 	folderPaths []string,
 	mappingRules []MappingRule) ([]RemoteAsset, error) {
 
+	rawKey := baseURL + strings.Join(folderPaths, "")
+	hash := md5.Sum([]byte(rawKey))
+	cacheKey := fmt.Sprintf("gh_cache_%x", hash)
+
+	var cachedAssets []RemoteAsset
+	err := h.storage.LoadCache(cacheKey, &cachedAssets)
+	if err == nil && len(cachedAssets) > 0 {
+		fmt.Printf("CACHE HIT: Loaded %d assets from disk\n", len(cachedAssets))
+		return cachedAssets, nil
+	}
+
 	var assets []RemoteAsset
-	var err error
+	// var err error
 
 	fmt.Printf("SCANNING SOURCE [%s]: %s\n", sourceName, baseURL)
 
@@ -96,6 +119,16 @@ func (h *RemoteHandler) FetchRemoteAssets(
 	})
 
 	fmt.Printf("SCAN COMPLETE: Found %d assets\n", len(finalAssets))
+
+	if len(finalAssets) > 0 {
+		go func(data []RemoteAsset) {
+			saveErr := h.storage.SaveCache(cacheKey, data)
+			if saveErr != nil {
+				fmt.Printf("CACHE SAVE ERROR: %v\n", saveErr)
+			}
+		}(finalAssets)
+	}
+
 	return finalAssets, nil
 }
 
@@ -456,6 +489,13 @@ func (h *RemoteHandler) RemoveAssetCache(sourceName string, assetID string) erro
 	})
 
 	return os.RemoveAll(targetDir)
+}
+
+func (h *RemoteHandler) RefreshSource(baseURL string, folderPaths []string) {
+	rawKey := baseURL + strings.Join(folderPaths, "")
+	hash := md5.Sum([]byte(rawKey))
+	cacheKey := fmt.Sprintf("gh_cache_%x", hash)
+	h.storage.DeleteCache(cacheKey)
 }
 
 func (h *RemoteHandler) ClearAllCache() error {

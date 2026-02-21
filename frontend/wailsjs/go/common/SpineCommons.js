@@ -6,12 +6,20 @@ export function GroupFilesIntoAssets(arg1) {
   return window['go']['common']['SpineCommons']['GroupFilesIntoAssets'](arg1);
 }
 
+export function ImportFromCache(arg1) {
+  return window['go']['common']['SpineCommons']['ImportFromCache'](arg1);
+}
+
+export function ImportFromDialog() {
+  return window['go']['common']['SpineCommons']['ImportFromDialog']();
+}
+
 export function ProcessSingleAsset(arg1) {
   return window['go']['common']['SpineCommons']['ProcessSingleAsset'](arg1);
 }
 
-export function RecursiveImport() {
-  return window['go']['common']['SpineCommons']['RecursiveImport']();
+export function RecursiveImport(arg1, arg2) {
+  return window['go']['common']['SpineCommons']['RecursiveImport'](arg1, arg2);
 }
 
 export function SelectFiles() {

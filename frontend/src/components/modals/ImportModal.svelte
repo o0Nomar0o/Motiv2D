@@ -21,8 +21,10 @@
   import {
     SelectFolder,
     RecursiveImport,
+    ImportFromDialog,
+    ImportFromCache,
   } from "../../../wailsjs/go/common/SpineCommons";
-  import { CheckSourceHealth } from "../../../wailsjs/go/remote/RemoteHandler";
+  import { CheckSourceHealth, GetCacheFolder, GetCachePath } from "../../../wailsjs/go/remote/RemoteHandler";
   import { EventsOn } from "../../../wailsjs/runtime/runtime";
 
   export let isOpen = false;
@@ -116,7 +118,22 @@
   async function handleRecursiveLocalImport() {
     try {
       isScanning = true;
-      await RecursiveImport();
+      await ImportFromDialog();
+      close();
+    } catch (err) {
+      console.error("Recursive scan failed:", err);
+    } finally {
+      // Note: In a production app, you'd wait for a "scan_complete"
+      // event from Go to set isScanning to false
+      isScanning = false;
+    }
+  }
+
+   async function handleCacheLocalImport() {
+    try {
+      isScanning = true;
+      let cachePath = await GetCachePath();
+      await ImportFromCache(cachePath);
       close();
     } catch (err) {
       console.error("Recursive scan failed:", err);
@@ -190,10 +207,10 @@
                       class="icon-mask md folder-icon"
                       style="--icon: url({iconFolder})"
                     ></div>
-                    <span class="label">Local Storage</span>
+                    <span class="label">Quick Import</span>
                     <div class="line-filler"></div>
                     <div class="action-zone">
-                      <span class="mono-hint">IMPORT FOLDER</span>
+                      <span class="mono-hint">LOCAL IMPORT FROM ROOT FOLDER</span>
                       <div
                         class="icon-mask sm arrow-icon"
                         style="--icon: url({iconUpload})"
@@ -209,10 +226,29 @@
                       class="icon-mask md folder-icon"
                       style="--icon: url({iconFolder})"
                     ></div>
-                    <span class="label">Local Storage</span>
+                    <span class="label">Bulk Import</span>
                     <div class="line-filler"></div>
                     <div class="action-zone">
-                      <span class="mono-hint">RECURSIVE MPORT FOLDER</span>
+                      <span class="mono-hint">SCANS ALL SUBFOLDERS</span>
+                      <div
+                        class="icon-mask sm arrow-icon"
+                        style="--icon: url({iconUpload})"
+                      ></div>
+                    </div>
+                  </button>
+
+                  <button
+                    class="minimal-import-row"
+                    on:click={handleCacheLocalImport}
+                  >
+                    <div
+                      class="icon-mask md folder-icon"
+                      style="--icon: url({iconFolder})"
+                    ></div>
+                    <span class="label">Cache Folders</span>
+                    <div class="line-filler"></div>
+                    <div class="action-zone">
+                      <span class="mono-hint">IMPORT ALL CACHE FOLDER</span>
                       <div
                         class="icon-mask sm arrow-icon"
                         style="--icon: url({iconUpload})"
@@ -553,7 +589,7 @@
   .divider {
     display: flex;
     align-items: center;
-    margin: 30px 0 20px 0;
+    margin: 15px 0 20px 0;
     opacity: 0.2;
   }
   .divider span {

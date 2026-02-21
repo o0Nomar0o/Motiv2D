@@ -213,7 +213,7 @@
     background-color: white;
     mask: var(--icon) no-repeat center / contain;
     -webkit-mask: var(--icon) no-repeat center / contain;
-    opacity: 0.7;
+    /* opacity: 0.7; */
   }
 
   .panel-viewport {

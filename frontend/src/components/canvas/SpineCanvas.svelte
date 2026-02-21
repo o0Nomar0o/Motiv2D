@@ -7,6 +7,11 @@
     spineUpdateSignal,
     isSelectSlot,
     selectedSlotName,
+    backgroundColor,
+    getRgba,
+    backgroundOpacity,
+    blurType,
+    backgroundBlur,
   } from "../../stores/appStore";
   import { loadSpineRuntime } from "../../lib/SpineController";
   import { Spine38Player } from "../../lib/Spine38Player";
@@ -88,7 +93,7 @@
         Object.entries(settings.slotVisibility).forEach(
           ([slotName, isVisible]) => {
             currentPlayer.setSlotVisibility(slotName, isVisible);
-          }
+          },
         );
       }
 
@@ -98,7 +103,7 @@
           currentPlayer.playAnimation(
             parseInt(trackId),
             data.animation,
-            data.loop
+            data.loop,
           );
         });
       }
@@ -122,7 +127,7 @@
       spineUpdateSignal.update((n) => n + 1);
     }, 0);
   }
-  
+
   onDestroy(() => {
     if (currentPlayer) currentPlayer.destroy();
     // Cleanup both canvases
@@ -200,7 +205,7 @@
     }));
   }
 
-  //Slot Picker 
+  //Slot Picker
   let highlightTimer: ReturnType<typeof setTimeout>;
 
   function handleCanvasClick(e: MouseEvent) {
@@ -226,9 +231,32 @@
     }
   }
 
+  $: filterStyle = (() => {
+    switch ($blurType) {
+      case "none":
+        return "";
+
+      case "frosted":
+        return `blur(${$backgroundBlur}px) saturate(140%) brightness(110%)`;
+
+      case "pixel":
+        return `blur(${$backgroundBlur}px) brightness(105%)`;
+
+      case "gaussian":
+      default:
+        return `blur(${$backgroundBlur}px)`;
+    }
+  })();
 </script>
 
-<div class="canvas-container">
+<div
+  class="canvas-container"
+  class:pixel-grid={$blurType === "pixel"}
+  style="background: {getRgba(
+    $backgroundColor,
+    $backgroundOpacity,
+  )}; backdrop-filter: {filterStyle}; -webkit-backdrop-filter: {filterStyle};"
+>
   <canvas
     bind:this={canvas4x}
     class:hidden={activeVersion !== "4.x"}
@@ -248,12 +276,32 @@
   .canvas-container {
     position: absolute;
     inset: 0;
-    /* background-color: aliceblue; */
   }
   canvas {
     width: 100%;
     height: 100%;
   }
+  .pixel-grid::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background-image: radial-gradient(
+      rgba(255, 255, 255, 0.08) 4px,
+      transparent 4px
+    );
+    background-size: 4px 4px;
+
+    background-color: transparent;
+    mask-image: linear-gradient(to bottom, black 1px, transparent 1px),
+      linear-gradient(to right, black 1px, transparent 1px);
+    mask-size:
+      100% 3px,
+      3px 100%;
+    opacity: 0.6;
+  }
+
   .hidden {
     display: none !important;
   }

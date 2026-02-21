@@ -3,26 +3,25 @@
   import { fade, fly } from "svelte/transition";
   import { CurrentPlatform } from "../../../wailsjs/go/main/App";
   import { BrowserOpenURL } from "../../../wailsjs/runtime/runtime";
+  import { GetMetadata } from "../../../wailsjs/go/update/UpdaterService";
 
   const dispatch = createEventDispatcher();
   const close = () => dispatch("close");
 
   let osInfo = "Detecting system";
+  let meta = null;
 
   onMount(async () => {
-    const p = await CurrentPlatform();
-    osInfo = p.replace("_", " / ").toUpperCase();
+    const [platform, metadata] = await Promise.all([
+      CurrentPlatform(),
+      GetMetadata(),
+    ]);
+
+    osInfo = platform.replace("_", " / ").toUpperCase();
+    meta = metadata;
   });
 
-  const links = [
-    { label: "REPOSITORY", url: "https://github.com/o0Nomar0o" },
-    {
-      label: "LICENSE",
-      url: "https://github.com/your-username/motiv-2d/blob/main/LICENSE",
-    },
-  ];
-
-  function openLink(url) {
+  function openLink(url: string) {
     if (url && url !== "#") {
       BrowserOpenURL(url);
     }
@@ -30,55 +29,58 @@
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
-
 <div class="backdrop" on:click={close} transition:fade={{ duration: 150 }}>
-  <div
-    class="modal st-gl"
-    on:click|stopPropagation
-    transition:fly={{ y: 10, duration: 300 }}
-  >
-    <div class="container" />
+  {#if meta}
+    <div
+      class="modal st-gl"
+      on:click|stopPropagation
+      transition:fly={{ y: 10, duration: 300 }}
+    >
+      <div class="container" />
 
-    <header>
-      <h1 class="title">MOTIV.2D</h1>
-      <p class="subtitle">OPEN SOURCE SOFTWARE</p>
-    </header>
+      <header>
+        <h1 class="title">{meta.appName}</h1>
+        <p class="subtitle">OPEN SOURCE SOFTWARE</p>
+      </header>
 
-    <div class="content">
-      <section class="meta-grid">
-        <div class="entry">
-          <span class="label">VERSION</span>
-          <span class="value">1.0.0-ALPHA</span>
-        </div>
-        <div class="entry">
-          <span class="label">PLATFORM</span>
-          <span class="value">{osInfo}</span>
-        </div>
-        <div class="entry">
-          <span class="label">BUILD</span>
-          <span class="value">2026.02.03</span>
-        </div>
-        <div class="entry">
-          <span class="label">LICENSE</span>
-          <span class="value">MIT</span>
-        </div>
-      </section>
+      <div class="content">
+        <section class="meta-grid">
+          <div class="entry">
+            <span class="label">VERSION</span>
+            <span class="value">{meta.displayVersion}</span>
+          </div>
+          <div class="entry">
+            <span class="label">PLATFORM</span>
+            <span class="value">{osInfo}</span>
+          </div>
+          <div class="entry">
+            <span class="label">BUILD</span>
+            <span class="value">{meta.buildDate}</span>
+          </div>
+          <div class="entry">
+            <span class="label">LICENSE</span>
+            <span class="value">{meta.license}</span>
+          </div>
+        </section>
 
-      <section class="links">
-        {#each links as link}
-          <button class="link-item" on:click={() => openLink(link.url)}>
-            {link.label}
-            <span class="arrow">→</span>
-          </button>
-        {/each}
-      </section>
+        <section class="links">
+          {#each meta.links as link}
+            <button class="link-item" on:click={() => openLink(link.url)}>
+              {link.label}
+              <span class="arrow">→</span>
+            </button>
+          {/each}
+        </section>
+      </div>
+
+      <footer>
+        <button class="close-trigger" on:click={close}>DISMISS</button>
+        <p class="copyright">BY {meta.author.toUpperCase()}</p>
+      </footer>
     </div>
-
-    <footer>
-      <button class="close-trigger" on:click={close}>DISMISS</button>
-      <p class="copyright">BY NOMAR</p>
-    </footer>
-  </div>
+  {:else}
+    <div class="loading-state" transition:fade>...</div>
+  {/if}
 </div>
 
 <style>

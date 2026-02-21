@@ -23,7 +23,7 @@
 
   let focusedTrackId = 0;
   // let mixerHeight = 300;
-  $: selectedTrackId.set(focusedTrackId);
+  // $: selectedTrackId.set(focusedTrackId);
   
   function playAnimation(name: string) {
     if (!player) return;
@@ -764,37 +764,12 @@
     transform: rotate(45deg);
     pointer-events: none;
   }
-  .toggle-lbl {
-    font-family: "FliegeReg";
-  }
+
   .section-header-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
-  }
-
-  .pma-toggle {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.4);
-    font-family: "MarklMono", monospace;
-    font-size: 9px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .pma-toggle.active {
-    background: rgba(0, 255, 150, 0.1);
-    border-color: rgba(0, 255, 150, 0.3);
-    color: #00ff96;
-  }
-
-  .pma-toggle:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
   }
 
   .vertical-layout-wrapper {
@@ -1015,44 +990,7 @@
     margin-bottom: 0.75rem;
   }
 
-  .center-btn {
-    width: 24px;
-    height: 18px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    border-width: 1px;
-
-    border-style: solid;
-
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .center-btn .icon-mask {
-    background-color: rgba(255, 255, 255, 0.65);
-  }
-
-  .center-btn:hover {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.1);
-    border-width: 1px 0 1px 0;
-  }
-
-  .center-btn:hover .icon-mask {
-    background-color: white;
-  }
-
-  .center-btn:active {
-    transform: translateY(1px);
-    background: rgba(255, 255, 255, 0.15);
-  }
-
+ 
   .config-wrap {
     margin-bottom: 1.5rem;
     flex-shrink: 0;
@@ -1083,7 +1021,7 @@
   /* SEGMENTED CONTROL */
   .segmented-control {
     --pill-height: 34px;
-    --inner-padding: 3px;
+    --inner-padding: 1.5px;
     position: relative;
     display: flex;
     width: 100%;
@@ -1101,9 +1039,9 @@
   .thumb-container {
     position: absolute;
     top: 0;
-    left: var(--inner-padding);
-    right: var(--inner-padding);
-    bottom: 0;
+    left: calc(var(--inner-padding) + 1.5px);
+    right: calc(var(--inner-padding) + 1.5px);
+    bottom: 1px;
     display: flex;
     align-items: center;
     z-index: 1;
@@ -1400,13 +1338,6 @@
     background: rgba(255, 255, 255, 0.05);
   }
 
-  .icon-tool-btn.active {
-    background: var(--accent);
-  }
-
-  .icon-tool-btn.active .icon-mask {
-    background-color: white;
-  }
 
   .action-divider {
     width: 1px;

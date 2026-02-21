@@ -1,15 +1,9 @@
 import { EventsEmit } from "../../wailsjs/runtime/runtime";
 
-let lastLoadedVersion: string | null = null;
-
 export async function loadSpineRuntime(version: string) {
-  if (version === lastLoadedVersion) {
-    return null; 
-  }
-
-  //3.7, 4.2 to be supported in the future
-  const supportedPrefixes = ["3.8", "4.0", "4.1"]; 
-  const isSupported = supportedPrefixes.some(p => version.startsWith(p));
+  
+  const supportedPrefixes = ["3.8", "4.0", "4.1"];
+  const isSupported = supportedPrefixes.some((p) => version.startsWith(p));
 
   if (!isSupported) {
     EventsEmit("link:log", {
@@ -20,42 +14,35 @@ export async function loadSpineRuntime(version: string) {
   }
 
   try {
-    let spine: any = null;
-
+    // version.startsWith("3.7") || version.startsWith("3.6") to be added later
     if (version.startsWith("3.8")) {
       const module = await import("./spine38/build/spine-webgl.js");
-      spine = module.spine || (window as any).spine;
-      
-      if (!spine) {
-        throw new Error("Spine 3.8 object not found in module or window");
-      }
-    } 
-    else if (version.startsWith("4.0")) {
-      spine = await import("@esotericsoftware/spine-webgl-4.0");
-    } 
-    else if (version.startsWith("4.1")) {
-      spine = await import("@esotericsoftware/spine-webgl");
-    }
 
-    if (spine) {
-      lastLoadedVersion = version; 
-      
-      EventsEmit("link:log", {
-        message: `Spine Runtime: ${version}`,
-        level: "info",
-      });
-      
+      const spine = module.spine || (window as any).spine;
+
+      if (!spine) {
+        console.error("Spine 3.8 object not found in module or window");
+        return null;
+      }
       return spine;
     }
 
-  } catch (err: any) {
+    if (version.startsWith("4.0")) {
+      const spine = await import("@esotericsoftware/spine-webgl-4.0");
+      return spine;
+    }
+
+    if (version.startsWith("4.1")) {
+      const spine = await import("@esotericsoftware/spine-webgl");
+      return spine;
+    }
+
+    if (version.startsWith("4.2")) {
+      const spine = await import("@esotericsoftware/spine-webgl-4.2");
+      return spine;
+    }
+  } catch (err) {
     console.error("Failed to load Spine runtime:", err);
-    
-    EventsEmit("link:log", {
-      message: `CRITICAL: Failed to load Spine ${version}: ${err.message}`,
-      level: "error",
-    });
-    
     return null;
   }
 }
