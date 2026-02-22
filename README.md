@@ -37,13 +37,12 @@
 
 ## Features
 
-### 🛠 Tooling
+### Tooling
 
 - **Layer Eye-Dropper**: Select any part of an animation directly in the viewport to instantly identify its corresponding layer name.
 - **Smart Detection**: Detects tampered/fake headers or junk data in `.skel` and removes them. Automatically identifies if a `.skel` file is actually formatted as JSON.
-- **Advanced Filtering**: Find exactly what you need with multiple search terms using the `||` (OR) operator (e.g., `sky || background`).
-- **Bulk Visibility**: Quickly hide or show all filtered results with a single click.
-- **Version Support**: Supports **Spine 3.8, 4.0, and 4.1** runtimes.
+- **Layer Filtering**: Find exactly what you need with multiple search terms using the `||` (OR) operator (e.g., `sky || background`).
+- **Bulk Layer Visibility**: Quickly hide or show all filtered results with a single click.
 
 <p align="center">
   <video src="https://github.com/user-attachments/assets/f641b9bb-4a34-4954-ab76-38a85538f85a" width="800" muted autoplay loop playsinline>
@@ -52,7 +51,7 @@
   <ins><em>Quickly find what's blocking your view with the Layer Eye-Dropper.</em></ins>
 </p>
 
-### 🌐 Remote & Storage
+### Remote & Storage
 
 - **Source Sharing**: Import and export remote storage configurations via shareable codes for quick imports. 
 - **Hybrid Fetching**: Uses **jsDelivr** and **GitHub API** for asset retrieval.
@@ -77,17 +76,17 @@ M2D:eyJuIjoiQnJvd24gRHVzdCAyIiwicCI6Im8wTm9tYXIwby9Ccm93bi1EdXN0LTItQXNzZXQvbWFz
 
 ## Roadmap
 
-### 🛠 Asset Handling & Runtimes
+### Asset Handling & Runtimes
 
 - **Version Expansion**: Add support for **Spine 3.7** and the latest **4.2** runtimes.
 - **Image Correction**: Implement auto-cropping for texture images to match `.atlas` dimensions, fixing weird meshes and errors.
 - **Live2D Integration**: Implement a **Live2D Cubism** viewer for .moc3 assets
 
-### 🏗 Extractions
+### Extractions
 
 - **AssetStudioMod CLI Bridge**: Offload heavy asset extraction to a dedicated CLI bridge. This allows for safe extraction from massive game bundles without overloading the application's memory.
 
-### 🌐 Remote Crawler Expansion
+### Remote Crawler Expansion
 
 - Support for **Google Drive**, **OneDrive**, and other cloud storages.
 
@@ -108,8 +107,8 @@ M2D:eyJuIjoiQnJvd24gRHVzdCAyIiwicCI6Im8wTm9tYXIwby9Ccm93bi1EdXN0LTItQXNzZXQvbWFz
 
 | Platform    | Status                                                                    |
 | ----------- | ------------------------------------------------------------------------- |
-| **macOS**   | [Download Latest Release](https://github.com/o0Nomar0o/Motiv2D/releases)) |
-| **Windows** | [Download Latest Release](https://github.com/o0Nomar0o/Motiv2D/releases)) |
+| **macOS**   | [Download Latest Release](https://github.com/o0Nomar0o/Motiv2D/releases)  |
+| **Windows** | [Download Latest Release](https://github.com/o0Nomar0o/Motiv2D/releases)  |
 
 ---
 
