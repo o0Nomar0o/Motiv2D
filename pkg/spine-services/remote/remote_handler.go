@@ -30,27 +30,36 @@ import (
 // }
 
 func (h *RemoteHandler) CheckSourceHealth(url string) bool {
+    checkURL := url
 
-	checkURL := strings.Replace(url, "api.github.com/repos/", "github.com/", 1)
-	checkURL = strings.Replace(checkURL, "git/trees/main?recursive=1", "", 1)
+    if strings.Contains(url, "api.github.com/repos/") {
+        checkURL = strings.Replace(url, "api.github.com/repos/", "github.com/", 1)
+        
+        if idx := strings.Index(checkURL, "/git/trees/"); idx != -1 {
+            checkURL = checkURL[:idx]
+        }
 
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
+    }
 
-	req, _ := http.NewRequest("HEAD", checkURL, nil)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+    client := &http.Client{
+        Timeout: 5 * time.Second,
+    }
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
+    req, _ := http.NewRequest("GET", checkURL, nil) 
+    req.Header.Set("User-Agent", "Motiv2D-HealthCheck/1.0")
 
-	return resp.StatusCode == http.StatusOK
+    resp, err := client.Do(req)
+    
+    if err != nil {
+        fmt.Printf("[HealthCheck] Error pinging %s: %v\n", checkURL, err)
+        return false
+    }
+
+    defer resp.Body.Close()
+
+    fmt.Printf("[HealthCheck] URL: %s | Status: %d\n", checkURL, resp.StatusCode)
+
+    return resp.StatusCode == http.StatusOK
 }
 
 func (h *RemoteHandler) FetchRemoteAssets(
@@ -489,6 +498,7 @@ func (h *RemoteHandler) RemoveAssetCache(sourceName string, assetID string) erro
 	})
 
 	return os.RemoveAll(targetDir)
+
 }
 
 func (h *RemoteHandler) RefreshSource(baseURL string, folderPaths []string) {
@@ -501,11 +511,13 @@ func (h *RemoteHandler) RefreshSource(baseURL string, folderPaths []string) {
 func (h *RemoteHandler) ClearAllCache() error {
 
 	cacheDir, err := h.GetCachePath()
+
 	if err != nil {
 		return err
 	}
 
 	err = os.RemoveAll(cacheDir)
+
 	if err != nil {
 		return err
 	}
@@ -518,12 +530,15 @@ func (h *RemoteHandler) GetCacheSize() (string, error) {
 	cacheDir, _ := h.GetCachePath()
 	var size int64
 	err := filepath.Walk(cacheDir, func(_ string, info os.FileInfo, err error) error {
+
 		if err != nil {
 			return err
 		}
+
 		if !info.IsDir() {
 			size += info.Size()
 		}
+
 		return nil
 	})
 

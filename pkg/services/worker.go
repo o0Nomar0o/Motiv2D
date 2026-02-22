@@ -17,7 +17,6 @@ type WorkPackage struct {
 }
 
 func (s *CLIService) startWorker() {
-
     for task := range s.taskQueue{
         s.runTask(task.Task, task.Options)
     }

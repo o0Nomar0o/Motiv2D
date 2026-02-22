@@ -29,14 +29,12 @@
 
   export let isOpen = false;
 
-  // --- UI STATE ---
   let activeTab = "browser";
   let selectedSource: any = null;
   let healthMap: Record<string, boolean> = {};
 
   $: displaySources = $remoteSources;
 
-  // --- LOGIC ---
   function close() {
     isImportOpen.set(false);
     selectedSource = null;
@@ -46,7 +44,6 @@
     selectedSource = null;
   }
 
-  // Reset gallery view if user switches tabs
   $: if (activeTab !== "browser") selectedSource = null;
 
   async function checkAllHealth() {
@@ -61,7 +58,6 @@
     healthMap = healthMap;
   }
 
-  // Run health check when modal opens
   $: if (isOpen && displaySources.length > 0) {
     checkAllHealth();
   }
@@ -123,8 +119,6 @@
     } catch (err) {
       console.error("Recursive scan failed:", err);
     } finally {
-      // Note: In a production app, you'd wait for a "scan_complete"
-      // event from Go to set isScanning to false
       isScanning = false;
     }
   }
@@ -138,8 +132,6 @@
     } catch (err) {
       console.error("Recursive scan failed:", err);
     } finally {
-      // Note: In a production app, you'd wait for a "scan_complete"
-      // event from Go to set isScanning to false
       isScanning = false;
     }
   }

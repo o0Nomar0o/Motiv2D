@@ -29,6 +29,7 @@ export const navState = writable(false);
 export const leftPanelClp = writable(false);
 export const rightPanelClp = writable(false);
 export const bottomPanelClp = writable(false);
+export const visibilityToggleSignal = writable(0);
 
 export const currentView = writable<"DASHBOARD" | "SPINE">("DASHBOARD");
 export const blurType = writable<"frosted" | "gaussian" | "pixel" | "none">("none");

@@ -31,6 +31,7 @@
     isSelectSlot,
     initRemotes,
     remoteSources,
+    visibilityToggleSignal,
   } from "./stores/appStore";
 
   //Wails & Svelte Import
@@ -104,6 +105,10 @@
       next_slot: () => animSidebarRef?.nextAnimation(),
       previous_slot: () => animSidebarRef?.previousAnimation(),
       slot_picker: () => animSidebarRef?.togglePicker(),
+      toggle_visibility: () => {
+        console.log("Visibility shortcut triggered");
+        visibilityToggleSignal.update((n) => n + 1);
+      },
     };
 
     const triggeredShortcut = config.shortcuts.find((s: any) => {
@@ -166,7 +171,7 @@
 </script>
 
 <div class="window-root {platform}">
-  {#if $isSettingsOpen || $isImportOpen }
+  {#if $isSettingsOpen || $isImportOpen}
     <div class="global-drag-handle top-stack"></div>
   {/if}
   <div class="global-drag-handle">
@@ -232,7 +237,7 @@
         style:right={rightMargin}
         style:width={$bottomPanelClp ? "48px" : "unset"}
       >
-        <BottomPanel  />
+        <BottomPanel />
       </div>
     {/if}
   </div>
@@ -328,7 +333,7 @@
     box-sizing: border-box;
     pointer-events: auto;
   }
-  .global-drag-handle.top-stack{
+  .global-drag-handle.top-stack {
     z-index: 99999;
   }
 

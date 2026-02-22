@@ -144,6 +144,14 @@
     refreshData();
   }
 
+  export function toggleHighlightedSlotVisibility() {
+    if (!highlightedSlot) return;
+    const slot = slots.find(s => s.name === highlightedSlot);
+    if (slot) {
+      handleVisibilityChange(slot.name, !slot.visible);
+    }
+  }
+
   function handleVisibilityChange(slotName: string, isChecked: boolean) {
     player.setSlotVisibility(slotName, isChecked);
     player.stopHighlightLoop();

@@ -19,6 +19,7 @@
   import iconGrid from "../../assets/images/grid.svg";
   import iconList from "../../assets/images/list.svg";
   import iconRefresh from "../../assets/images/refresh.svg";
+  import { CheckSourceHealth } from "../../../wailsjs/go/remote/RemoteHandler";
 
   export let source = null;
   const dispatch = createEventDispatcher();

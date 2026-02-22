@@ -43,14 +43,13 @@
 
   function convertToRaw(url: string) {
     if (!url) return "";
+
     if (
       !url.includes("github.com") ||
       url.includes("raw.githubusercontent.com")
     )
       return url;
 
-    // Convert https://github.com/user/repo/blob/main/file.json
-    // to https://raw.githubusercontent.com/user/repo/main/file.json
     return url
       .replace("github.com", "raw.githubusercontent.com")
       .replace("/blob/", "/");
@@ -119,7 +118,17 @@
 
     if (source.baseUrl.includes("api.github.com/repos")) {
       const match = source.baseUrl.match(/repos\/([^\/]+)\/([^\/]+)/);
-      if (match) tempUrl = `https://github.com/${match[1]}/${match[2]}`;
+
+      if (match) {
+        tempUrl = `https://github.com/${match[1]}/${match[2]}`;
+      }
+
+      const branchMatch = source.baseUrl.match(/\/git\/trees\/([^?\/]+)/);
+
+      if (branchMatch) {
+        githubBranch = branchMatch[1];
+      }
+
     } else {
       tempUrl = source.baseUrl;
     }
@@ -197,7 +206,7 @@
   function toggleImport() {
     isExpanded = !isExpanded;
     if (isExpanded) {
-      setTimeout(() => importRef?.focus(), 400); // Focus after animation
+      setTimeout(() => importRef?.focus(), 400);
     }
   }
 
@@ -205,6 +214,7 @@
     if (!importValue.startsWith("M2D:")) return;
 
     const imported = decodeShareCode(importValue);
+
     if (imported && imported.length > 0) {
       const data = imported[0];
       tempName = data.name;
@@ -216,9 +226,16 @@
       tempUrl = ghMatch
         ? `https://github.com/${ghMatch[1]}/${ghMatch[2]}`
         : data.baseUrl;
+      
+      const branchMatch = data.baseUrl.match(/\/git\/trees\/([^?\/]+)/);
+
+      if (branchMatch) {
+        githubBranch = branchMatch[1]; 
+        console.log("Imported branch detected:", githubBranch);
+      }
+
       useJsDelivr = data.remoteRoot.includes("jsdelivr");
 
-      // Fluidly retract after success
       isExpanded = false;
       importValue = "";
     }
@@ -256,13 +273,14 @@
         <div class="remote-card">
           <div class="card-body">
             <span class="card-name">{remote.name}</span>
-            <div class="status-indicator">
+            <!-- <div class="status-indicator">
               <span class="dot" class:active={remote.active}></span>
               <span class="status-text">
                 {remote.active ? "Active" : "Inactive"} | {remote.mode}
               </span>
-            </div>
+            </div> -->
           </div>
+             <div class="line-filler"></div>
           <div class="card-controls">
             <button
               class="action-icon share-btn"
@@ -693,6 +711,12 @@
     border-color: #fff;
     background: rgba(255, 255, 255, 0.05);
   }
+   .line-filler {
+    flex: 1;
+    height: 1px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+    margin: 0 20px;
+  }
 
   .input-block {
     flex: 1;
@@ -982,7 +1006,7 @@
   .add-card-btn {
     border: 1px solid #333;
     border-radius: 20px;
-    padding: 24px;
+    padding: 12px 24px;
     background: rgba(255, 255, 255, 0.03);
     display: flex;
     align-items: center;
