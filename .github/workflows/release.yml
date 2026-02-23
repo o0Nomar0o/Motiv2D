@@ -70,15 +70,11 @@ jobs:
             wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w"
             
             PLIST_PATH="build/bin/motiv2d.app/Contents/Info.plist"
-            plutil -replace LSMinimumSystemVersion -string "15.0.0" "$PLIST_PATH" |
-
-| true
-            plutil -replace NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH" |
-
-| true
-            plutil -replace NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" |
-
-| true
+            # Use '|| true' to prevent failure if keys are already present
+            plutil -replace LSMinimumSystemVersion -string "15.0.0" "$PLIST_PATH" || true
+            plutil -replace NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH" || true
+            plutil -insert NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || \
+            plutil -replace NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || true
           else
             # Windows: Build the standard binaries (uses Embed/Evergreen strategy)
             wails build -platform ${{ matrix.platform }} -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed -devtools
