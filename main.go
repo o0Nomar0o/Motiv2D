@@ -141,7 +141,6 @@ func main() {
 			BackdropType:                      windows.Mica,
 			DisableWindowIcon:                 true,
 			DisableFramelessWindowDecorations: false,
-			BrowserArgs: "--ignore-gpu-blocklist --enable-webgl-draft-extensions --force-gpu-rasterization",
 		},
 	})
 
