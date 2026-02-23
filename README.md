@@ -4,9 +4,11 @@
 
 <h1 align="center">Motiv2D</h1>
 
-Language:
-- [English](README.md)
-- [中文](README.zh.md)
+<p align="center">
+  Language:
+  <a href="README.md">English</a> |
+  <a href="README.zh.md">中文</a>
+</p>
 
 <p align="center"> <strong>High-Performance Spine Viewer</strong><br/> A tool for previewing, managing, and batch-importing Spine assets.<br/> Built for efficiency with Go, Wails, and Svelte. <br/> </p>
 
