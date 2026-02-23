@@ -409,3 +409,33 @@ export function decodeShareCode(code: string): RemoteSource[] {
     return [];
   }
 }
+
+// Live2D Metadata 
+export interface Live2DMetadata {
+  id: string;
+  version: string;
+  modelJsonFile: { url: string };
+  textureFiles: Array<{ url: string }>;
+  isRemote?: boolean;
+  sourceName?: string;
+}
+
+export interface Live2DSessionState {
+  id: string;
+  camX: number;
+  camY: number;
+  zoom: number;
+  currentAnimation: string;
+  currentExpression: string;
+  drawableVisibility: Record<string, boolean>; 
+  parameters: Record<string, number>;
+}
+
+export const live2dLibrary = writable<Live2DMetadata[]>([]);
+export const activeLive2DCharacter = writable<Live2DMetadata | null>(null);
+export const live2dSettings = writable<Record<string, Live2DSessionState>>({});
+export const live2dUpdateSignal = writable(0);
+
+export function triggerLive2DRefresh() {
+  live2dUpdateSignal.update((n) => n + 1);
+}

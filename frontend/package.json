@@ -24,6 +24,8 @@
     "@esotericsoftware/spine-webgl-4.0": "npm:@esotericsoftware/spine-webgl@4.0",
     "@esotericsoftware/spine-webgl-4.2": "npm:@esotericsoftware/spine-webgl@4.2",
     "gsap": "^3.14.2",
+    "pixi-live2d-display": "^0.4.0",
+    "pixi.js": "^6.5.10",
     "snarkdown": "^2.0.0"
   }
 }

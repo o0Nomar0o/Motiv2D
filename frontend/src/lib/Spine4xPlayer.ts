@@ -44,49 +44,6 @@ export class Spine4xPlayer {
     });
   }
 
-  // async load(asset: any, settings?: CharacterSessionState) {
-  //
-  //   this.savedSettings = settings || null;
-  //   const atlasUrl = decodeURIComponent(asset.atlasFile.url);
-  //   const skelUrl = decodeURIComponent(asset.skelFile.url);
-  //
-  //   if (this.assetManager.downloader) {
-  //     this.assetManager.downloader.pathPrefix = "";
-  //   }
-
-  //   this.assetManager.loadText(atlasUrl);
-  //
-  //   if (asset.isBinary) this.assetManager.loadBinary(skelUrl);
-  //   else this.assetManager.loadJson(skelUrl);
-
-  //   const checkMetadata = () => {
-  //
-  //     if (this.isDestroyed) return;
-  //
-  //     if (this.assetManager.isLoadingComplete()) {
-  //       const atlasText = this.assetManager.get(atlasUrl);
-  //       this.isPMA =
-  //         atlasText.includes("pma: true") || atlasText.includes("pma:true");
-
-  //       this.assetManager.loadTextureAtlas(atlasUrl, (atlas: any) => {
-  //         if (!atlas || !atlas.pages) return;
-  //         for (const page of atlas.pages) {
-  //           page.texture.setFilters(
-  //             this.spine.TextureFilter.MipMapLinearLinear,
-  //             this.spine.TextureFilter.Linear
-  //           );
-  //         }
-  //       });
-
-  //       this.waitForTextures(asset, atlasUrl, skelUrl);
-  //
-  //     } else {
-  //       this.requestId = requestAnimationFrame(checkMetadata);
-  //     }
-  //   };
-  //   checkMetadata();
-  // }
-
   load(asset: any, settings?: CharacterSessionState) {
     this.savedSettings = settings || null;
     const atlasUrl = decodeURIComponent(asset.atlasFile.url);
