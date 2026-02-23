@@ -3,8 +3,8 @@ name: Wails Build
 on:
   push:
     tags:
-      - 'v*'
-      
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
 permissions:
   contents: write
   packages: write
@@ -60,38 +60,37 @@ jobs:
           swiftc -c macos/window_control.swift -o macos/window_control_x86_64.o -target x86_64-apple-macos15.0 -parse-as-library
           lipo -create macos/window_control_arm64.o macos/window_control_x86_64.o -output macos/window_control.o
           ar rcs macos/libwindow_control.a macos/window_control.o
-        
+
+      - name: Download Fixed WebView2 Runtime (Windows Only)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          $url = "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/8d7d9e58-5939-4512-b0f3-f3b459ffb8f1/Microsoft.WebView2.FixedVersionRuntime.145.0.3800.70.x64.cab"
+          Invoke-WebRequest -Uri $url -OutFile "wv2.cab"
+          New-Item -ItemType Directory -Force -Path build/bin/WebView2Runtime
+          expand wv2.cab -F:* build/bin/WebView2Runtime
+
       - name: Build Wails
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "macos-latest" ]; then
             export MACOSX_DEPLOYMENT_TARGET=15.0
             wails build -platform ${{ matrix.platform }} -clean -ldflags "-s -w"
-            
+
             PLIST_PATH="build/bin/motiv2d.app/Contents/Info.plist"
-            # Use '|| true' to prevent failure if keys are already present
             plutil -replace LSMinimumSystemVersion -string "15.0.0" "$PLIST_PATH" || true
             plutil -replace NSRequiresAquaSystemAppearance -bool false "$PLIST_PATH" || true
             plutil -insert NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || \
             plutil -replace NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || true
           else
-            # Windows: Build the standard binaries (uses Embed/Evergreen strategy)
-            wails build -platform ${{ matrix.platform }} -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed -devtools
-            wails build -platform ${{ matrix.platform }} -o motiv2d-frameless.exe -ldflags "-s -w -X 'main.FramelessMode=true'" -webview2 embed
-          fi
+            # EMBED (Evergreen)
+            wails build -platform windows/amd64 -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed -devtools
+            wails build -platform windows/amd64 -o motiv2d-frameless.exe -ldflags "-s -w -X 'main.FramelessMode=true'" -webview2 embed
 
-      - name: Bundle Fixed Version Runtime (Windows Only)
-        if: matrix.os == 'windows-latest'
-        shell: powershell
-        run: |
-          $url = "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/8d7d9e58-5939-4512-b0f3-f3b459ffb8f1/Microsoft.WebView2.FixedVersionRuntime.145.0.3800.70.x64.cab"
-          Write-Host "Downloading Fixed Version Runtime..."
-          Invoke-WebRequest -Uri $url -OutFile "wv2.cab"
-          
-          Write-Host "Extracting CAB..."
-          # The -F:* flag is required to extract the full folder structure 
-          mkdir build/bin/wv2runtime
-          expand wv2.cab -F:* build/bin/wv2runtime
+            # Copy for bundled versions
+            cp build/bin/motiv2d-standard.exe build/bin/motiv2d-standard-bundled.exe
+            cp build/bin/motiv2d-frameless.exe build/bin/motiv2d-frameless-bundled.exe
+          fi
 
       - name: Package & Generate Hash
         id: package
@@ -101,16 +100,15 @@ jobs:
             cd build/bin
             chmod +x motiv2d.app/Contents/MacOS/motiv2d
             codesign --force --deep --sign - motiv2d.app
-            zip -r../../motiv2d-${{ matrix.artifact }}.zip motiv2d.app
+            zip -r ../../motiv2d-${{ matrix.artifact }}.zip motiv2d.app
           else
-            # 1. Standard Downloads (Embed mode)
+            # Embed (Evergreen)
             powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-standard.exe' -DestinationPath './motiv2d-windows-standard.zip'"
             powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless.exe' -DestinationPath './motiv2d-windows-frameless.zip'"
-            
-            # 2. Bundled Downloads (Fixed Version mode)
-            # These zips MUST include the wv2runtime folder alongside the executable [1, 2]
-            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-standard.exe', 'build/bin/wv2runtime' -DestinationPath './motiv2d-windows-bundled-standard.zip'"
-            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless.exe', 'build/bin/wv2runtime' -DestinationPath './motiv2d-windows-bundled-frameless.zip'"
+
+            # Bundled Fixed Runtime (WebGL-safe)
+            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-standard-bundled.exe','build/bin/WebView2Runtime' -DestinationPath './motiv2d-windows-standard-bundled.zip'"
+            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless-bundled.exe','build/bin/WebView2Runtime' -DestinationPath './motiv2d-windows-frameless-bundled.zip'"
           fi
 
       - name: Upload to Release
@@ -134,12 +132,18 @@ jobs:
           VERSION=${{ github.ref_name }}
           VERSION_NUM=${VERSION#v}
           
+          # Download all release assets
           gh release download $VERSION --pattern "*.zip"
           
-          WIN_STD_HASH=$(shasum -a 256 motiv2d-windows-standard.zip | awk '{print $1}')
-          WIN_FRM_HASH=$(shasum -a 256 motiv2d-windows-frameless.zip | awk '{print $1}')
-          WIN_BND_STD_HASH=$(shasum -a 256 motiv2d-windows-bundled-standard.zip | awk '{print $1}')
-          WIN_BND_FRM_HASH=$(shasum -a 256 motiv2d-windows-bundled-frameless.zip | awk '{print $1}')
+          # Windows (Embedded WebView2)
+          WIN_STD_EMBED_HASH=$(shasum -a 256 motiv2d-windows-standard.zip | awk '{print $1}')
+          WIN_FRM_EMBED_HASH=$(shasum -a 256 motiv2d-windows-frameless.zip | awk '{print $1}')
+          
+          # Windows (Bundled Fixed Runtime)
+          WIN_STD_BUNDLED_HASH=$(shasum -a 256 motiv2d-windows-standard-bundled.zip | awk '{print $1}')
+          WIN_FRM_BUNDLED_HASH=$(shasum -a 256 motiv2d-windows-frameless-bundled.zip | awk '{print $1}')
+          
+          # macOS
           MAC_ARM_HASH=$(shasum -a 256 motiv2d-macos-arm64.zip | awk '{print $1}')
           MAC_INTEL_HASH=$(shasum -a 256 motiv2d-macos-intel.zip | awk '{print $1}')
 
@@ -147,21 +151,21 @@ jobs:
           {
             "version": "$VERSION_NUM",
             "platforms": {
-              "windows_standard_amd64": {
+              "windows_standard_amd64_embed": {
                 "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-windows-standard.zip",
-                "checksum": "$WIN_STD_HASH"
+                "checksum": "$WIN_STD_EMBED_HASH"
               },
-              "windows_frameless_amd64": {
+              "windows_frameless_amd64_embed": {
                 "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-windows-frameless.zip",
-                "checksum": "$WIN_FRM_HASH"
+                "checksum": "$WIN_FRM_EMBED_HASH"
               },
-              "windows_bundled_standard_amd64": {
-                "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-windows-bundled-standard.zip",
-                "checksum": "$WIN_BND_STD_HASH"
+              "windows_standard_amd64_bundled": {
+                "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-windows-standard-bundled.zip",
+                "checksum": "$WIN_STD_BUNDLED_HASH"
               },
-              "windows_bundled_frameless_amd64": {
-                "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-windows-bundled-frameless.zip",
-                "checksum": "$WIN_BND_FRM_HASH"
+              "windows_frameless_amd64_bundled": {
+                "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-windows-frameless-bundled.zip",
+                "checksum": "$WIN_FRM_BUNDLED_HASH"
               },
               "darwin_arm64": {
                 "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-macos-arm64.zip",
@@ -182,6 +186,6 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add update.json
-          git commit -m "chore: update manifest to ${{ github.ref_name }}"
+          git commit -m "chore: update manifest to ${{ github.ref_name }}" || echo "No changes to commit"
           git pull origin main --rebase
           git push origin main
