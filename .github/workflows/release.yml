@@ -77,6 +77,7 @@ jobs:
           else
             wails build -platform ${{ matrix.platform }} -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed
             wails build -platform ${{ matrix.platform }} -o motiv2d-frameless.exe -ldflags "-s -w -X 'main.FramelessMode=true'" -webview2 embed
+            wails build -platform ${{ matrix.platform }} -o motiv2d-dev-tools.exe -clean -ldflags "-s -w" -webview2 embed -devtools
           fi
 
       - name: Package & Generate Hash
