@@ -657,5 +657,9 @@ export class Spine38Player {
     if (this.shader) this.shader.dispose();
     if (this.batcher) this.batcher.dispose();
     if (this.assetManager) this.assetManager.dispose();
+    if (this.cameraManager) this.cameraManager.dispose();
+    this.gl = null as any;
+    this.skeleton = null;
+    this.state = null;
   }
 }

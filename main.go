@@ -44,6 +44,14 @@ func main() {
 	isWindows := runtime.GOOS == "windows"
 	isFrameless := isWindows && FramelessMode == "true"
 
+	exePath, _ := os.Executable()
+	bundleDir := filepath.Join(filepath.Dir(exePath), "wv2runtime")
+	
+	runtimePath := ""
+	if _, err := os.Stat(bundleDir); err == nil {
+		runtimePath = bundleDir
+	}
+
 	if runtime.GOOS == "windows" {
 		os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
 			"--ignore-gpu-blocklist "+
@@ -149,6 +157,7 @@ func main() {
 			BackdropType:                      windows.Mica,
 			DisableWindowIcon:                 true,
 			DisableFramelessWindowDecorations: false,
+			WebviewBrowserPath: runtimePath,
 		},
 	})
 
