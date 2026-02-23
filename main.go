@@ -45,7 +45,12 @@ func main() {
 	isFrameless := isWindows && FramelessMode == "true"
 
 	if runtime.GOOS == "windows" {
-		os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--ignore-gpu-blocklist --disable-gpu-driver-bug-workarounds")
+		os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+			"--ignore-gpu-blocklist "+
+				"--use-angle=d3d11 "+
+				"--enable-webgl "+
+				"--enable-webgl-image-chromium",
+		)
 	}
 
 	err := wails.Run(&options.App{

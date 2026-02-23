@@ -1,0 +1,72 @@
+name: Wails Build (Windows Runtime Test)
+
+on:
+  push:
+    tags:
+      - 'v*-winrt'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get Version
+        id: get_version
+        shell: bash
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
+
+      - name: Build Frontend
+        shell: bash
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Build Wails (WebView2 Runtime)
+        shell: bash
+        run: |
+          # Standard window (runtime WebView2)
+          wails build -platform windows/amd64 \
+            -o motiv2d-runtime.exe \
+            -clean \
+            -ldflags "-s -w" \
+            -devtools
+
+          # Frameless window (runtime WebView2)
+          wails build -platform windows/amd64 \
+            -o motiv2d-runtime-frameless.exe \
+            -ldflags "-s -w -X 'main.FramelessMode=true'"
+
+      - name: Package
+        shell: powershell
+        run: |
+          Compress-Archive -Path 'build/bin/motiv2d-runtime.exe' -DestinationPath './motiv2d-windows-runtime.zip'
+          Compress-Archive -Path 'build/bin/motiv2d-runtime-frameless.exe' -DestinationPath './motiv2d-windows-runtime-frameless.zip'
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            motiv2d-windows-runtime-dev.zip
+            motiv2d-windows-runtime-frameless.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
