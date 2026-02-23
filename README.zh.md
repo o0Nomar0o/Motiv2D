@@ -4,6 +4,12 @@
 
 <h1 align="center">Motiv2D</h1>
 
+<p align="center">
+  Language:
+  <a href="README.md">English</a> |
+  <a href="README.zh.md">中文</a>
+</p>
+
 <p align="center"> <strong>高性能 Spine 动画查看器</strong><br/> 一款专为 Spine 资产预览、管理和批量导入设计的工具。<br/> 基于 Go, Wails 和 Svelte 构建，追求极致效率。 <br/> </p>
 
 <p align="center">
