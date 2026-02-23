@@ -90,9 +90,9 @@ jobs:
             codesign --force --deep --sign - motiv2d.app
             zip -r ../../motiv2d-${{ matrix.artifact }}.zip motiv2d.app
           else
-            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-standard.exe' -DestinationPath './motiv2d-windows-standard.zip'"
-            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless.exe' -DestinationPath './motiv2d-windows-frameless.zip'"
-            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-dev-tools.exe' -DestinationPath './motiv2d-windows-dev-tools.zip'"
+            powershell -Command "Compress-Archive -Path 'motiv2d-standard.exe' -DestinationPath './motiv2d-windows-standard.zip'"
+            powershell -Command "Compress-Archive -Path 'motiv2d-frameless.exe' -DestinationPath './motiv2d-windows-frameless.zip'"
+            powershell -Command "Compress-Archive -Path 'motiv2d-dev-tools.exe' -DestinationPath './motiv2d-windows-dev-tools.zip'"
           fi
 
       - name: Upload to Release
