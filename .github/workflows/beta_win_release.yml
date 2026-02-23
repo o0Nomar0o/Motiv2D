@@ -59,7 +59,7 @@ jobs:
       - name: Package
         shell: powershell
         run: |
-          Compress-Archive -Path 'build/bin/motiv2d-runtime.exe' -DestinationPath './motiv2d-windows-runtime.zip'
+          Compress-Archive -Path 'build/bin/motiv2d-runtime.exe' -DestinationPath './motiv2d-windows-runtime-dev.zip'
           Compress-Archive -Path 'build/bin/motiv2d-runtime-frameless.exe' -DestinationPath './motiv2d-windows-runtime-frameless.zip'
 
       - name: Upload to Release
