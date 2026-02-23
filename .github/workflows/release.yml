@@ -81,15 +81,24 @@ jobs:
           fi
 
       # MOVED: This now runs AFTER 'wails build' so the -clean flag doesn't delete it
-      - name: Download Fixed WebView2 Runtime (Windows Only)
+      - name: Download & Extract Fixed WebView2 Runtime (Windows Only)
         if: matrix.os == 'windows-latest'
         shell: powershell
         run: |
           $url = "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/8d7d9e58-5939-4512-b0f3-f3b459ffb8f1/Microsoft.WebView2.FixedVersionRuntime.145.0.3800.70.x64.cab"
-          Invoke-WebRequest -Uri $url -OutFile "wv2.cab"
-          if (!(Test-Path "build/bin")) { New-Item -ItemType Directory -Path "build/bin" }
-          New-Item -ItemType Directory -Force -Path build/bin/WebView2Runtime
-          expand wv2.cab -F:* build/bin/WebView2Runtime
+          Invoke-WebRequest -Uri $url -OutFile "wv2runtime.cab"
+          
+          New-Item -ItemType Directory -Force -Path build/bin
+          New-Item -ItemType Directory -Force -Path build/bin/wv2runtime
+
+          New-Item -ItemType Directory -Force -Path build/bin/wv2runtime-temp
+          expand wv2runtime.cab -F:* build/bin/wv2runtime-temp
+
+          Get-ChildItem -Path build/bin/wv2runtime-temp/* -Recurse | ForEach-Object {
+            Copy-Item -Path $_.FullName -Destination build/bin/wv2runtime -Force
+          }
+
+          Remove-Item -Recurse -Force build/bin/wv2runtime-temp
 
       - name: Package & Generate Hash
         id: package
@@ -106,8 +115,8 @@ jobs:
             powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless.exe' -DestinationPath './motiv2d-windows-frameless.zip' -Force"
             
             # Bundled Fixed Runtime (WebGL-safe)
-            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-standard-bundled.exe','build/bin/WebView2Runtime' -DestinationPath './motiv2d-windows-standard-bundled.zip' -Force"
-            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless-bundled.exe','build/bin/WebView2Runtime' -DestinationPath './motiv2d-windows-frameless-bundled.zip' -Force"
+            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-standard-bundled.exe','build/bin/wv2runtime' -DestinationPath './motiv2d-windows-standard-bundled.zip' -Force"
+            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless-bundled.exe','build/bin/wv2runtime' -DestinationPath './motiv2d-windows-frameless-bundled.zip' -Force"
           fi
 
       - name: Upload to Release
