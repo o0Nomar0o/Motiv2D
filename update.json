@@ -1,0 +1,21 @@
+{
+  "version": "1.0.2",
+  "platforms": {
+    "windows_standard_amd64": {
+      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.2/motiv2d-windows-standard.zip",
+      "checksum": "704993d7bffb40de24be6bcd04b46ce3fc33360451a8193c13ff3d0b71d7386e"
+    },
+    "windows_frameless_amd64": {
+      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.2/motiv2d-windows-frameless.zip",
+      "checksum": "cbe7e3079ddd506626e112fe51a41173187e237d30822996fae53b9533fb6754"
+    },
+    "darwin_arm64": {
+      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.2/motiv2d-macos-arm64.zip",
+      "checksum": "b3aaaad55eebe887f2539e429ce286a763629bfbee68efac0d3b840b050194a6"
+    },
+    "darwin_amd64": {
+      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.2/motiv2d-macos-intel.zip",
+      "checksum": "783cba34e3fd59055c83c0f70d191d30aa9f3e1c8f1b29c4cbb4fabcbedf1a27"
+    }
+  }
+}
