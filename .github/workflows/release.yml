@@ -75,9 +75,8 @@ jobs:
             plutil -insert NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || \
             plutil -replace NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || true
           else
-            wails build -platform ${{ matrix.platform }} -o build/bin/motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed
-            wails build -platform ${{ matrix.platform }} -o build/bin/motiv2d-frameless.exe -ldflags "-s -w -X 'main.FramelessMode=true'" -webview2 embed
-            wails build -platform ${{ matrix.platform }} -o build/bin/motiv2d-dev-tools.exe -clean -ldflags "-s -w" -webview2 embed -devtools
+            wails build -platform ${{ matrix.platform }} -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed -devtools
+            wails build -platform ${{ matrix.platform }} -o motiv2d-frameless.exe -ldflags "-s -w -X 'main.FramelessMode=true'" -webview2 embed
           fi
 
       - name: Package & Generate Hash
@@ -92,7 +91,6 @@ jobs:
           else
             powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-standard.exe' -DestinationPath './motiv2d-windows-standard.zip'"
             powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless.exe' -DestinationPath './motiv2d-windows-frameless.zip'"
-            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-dev-tools.exe' -DestinationPath './motiv2d-windows-dev-tools.zip'"
           fi
 
       - name: Upload to Release

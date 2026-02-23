@@ -44,8 +44,11 @@ func main() {
 	isWindows := runtime.GOOS == "windows"
 	isFrameless := isWindows && FramelessMode == "true"
 
-	err := wails.Run(&options.App{
+	if runtime.GOOS == "windows" {
+		os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", "--ignore-gpu-blocklist --disable-gpu-driver-bug-workarounds")
+	}
 
+	err := wails.Run(&options.App{
 		Title:     "MOTIV.2D",
 		MinWidth:  1000,
 		MinHeight: 600,
