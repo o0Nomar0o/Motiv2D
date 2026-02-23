@@ -92,6 +92,7 @@ jobs:
           else
             powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-standard.exe' -DestinationPath './motiv2d-windows-standard.zip'"
             powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless.exe' -DestinationPath './motiv2d-windows-frameless.zip'"
+            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-dev-tools.exe' -DestinationPath './motiv2d-windows-dev-tools.zip'"
           fi
 
       - name: Upload to Release
