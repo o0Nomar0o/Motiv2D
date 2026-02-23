@@ -3,7 +3,7 @@ name: Wails Build
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*'
       
 permissions:
   contents: write
