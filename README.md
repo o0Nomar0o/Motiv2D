@@ -53,9 +53,13 @@
 
 ### Remote & Storage
 
-- **Source Sharing**: Import and export remote storage configurations via shareable codes for quick imports. 
-- **Hybrid Fetching**: Uses **jsDelivr** and **GitHub API** for asset retrieval.
-- **Persistent Local Storage**: Fetched assets are cached locally for performance; downloaded assets remain in local storage permanently until manually deleted.
+- **Source Sharing**: Import and export remote storage configurations via shareable codes for quick imports. 
+- **Metadata Caching**: When a repository is loaded, the app caches all asset paths locally. This index istypically ** 1MB**, for instant browsing without re-scanning the repo.
+- **Hybrid Fetching (Rate-Limit Friendly)**: 
+    - **GitHub API**: Used only for initial directory indexing.
+    - **jsDelivr CDN**: All actual asset downloads (textures, skel, atlas) are routed through jsDelivr. This **bypasses GitHub's API rate limits**.
+- **On-Demand Refresh**: Data is persistent. Use the manual refresh button to sync with the latest repository changes.
+- **Persistent Local Storage**: Fetched assets are cached locally for performance, and downloaded assets remain in local storage permanently until manually deleted.
 
 
 <p align="center">
