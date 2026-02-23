@@ -28,3 +28,5 @@ macos/*.o
 macos/*.a
 macos/*-Swift.h
 
+frontend/src/lib/live2d
+frontend/src/lib/Live2DController.ts
