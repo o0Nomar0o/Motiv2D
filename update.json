@@ -1,21 +1,29 @@
 {
-  "version": "1.0.2",
+  "version": "1.0.3",
   "platforms": {
-    "windows_standard_amd64": {
-      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.2/motiv2d-windows-standard.zip",
-      "checksum": "704993d7bffb40de24be6bcd04b46ce3fc33360451a8193c13ff3d0b71d7386e"
+    "windows_standard_amd64_embed": {
+      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.3/motiv2d-windows-standard.zip",
+      "checksum": "c5ceb159bca166bdbc9a3b3124363eb3210c8da84f6c70bf778006e3670865fe"
     },
-    "windows_frameless_amd64": {
-      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.2/motiv2d-windows-frameless.zip",
-      "checksum": "cbe7e3079ddd506626e112fe51a41173187e237d30822996fae53b9533fb6754"
+    "windows_frameless_amd64_embed": {
+      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.3/motiv2d-windows-frameless.zip",
+      "checksum": "494a9995f5e6b5ae1c8aed2fcf9eb7e5b124b5080fd74884c2fad1c9e76c5a57"
+    },
+    "windows_standard_amd64_bundled": {
+      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.3/motiv2d-windows-standard-bundled.zip",
+      "checksum": "ce8fe2c1ea149acda6822be16add429777fd030286be2399a40f426ff5986642"
+    },
+    "windows_frameless_amd64_bundled": {
+      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.3/motiv2d-windows-frameless-bundled.zip",
+      "checksum": "73214b7e4a161919fccde91ace02002bbe6e8008d66080fe45969d99115062b9"
     },
     "darwin_arm64": {
-      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.2/motiv2d-macos-arm64.zip",
-      "checksum": "b3aaaad55eebe887f2539e429ce286a763629bfbee68efac0d3b840b050194a6"
+      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.3/motiv2d-macos-arm64.zip",
+      "checksum": "f7a6be6ffda5213a1615b7aa377cf0afd7585ec91cceaee2c2526d4c84abf46c"
     },
     "darwin_amd64": {
-      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.2/motiv2d-macos-intel.zip",
-      "checksum": "783cba34e3fd59055c83c0f70d191d30aa9f3e1c8f1b29c4cbb4fabcbedf1a27"
+      "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.3/motiv2d-macos-intel.zip",
+      "checksum": "48282c4d5816a38537991e0f3f8233a254fbdcdfef7b5a03d6fb4c77b3d65b07"
     }
   }
 }
