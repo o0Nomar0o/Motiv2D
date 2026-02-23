@@ -3,7 +3,6 @@ import { CameraManager } from "./CameraManager";
 import { triggerSpineRefresh } from "../stores/appStore";
 
 export class Spine38Player {
-
   private assetManager: any;
   public skeleton: any;
   public state: any;
@@ -51,6 +50,9 @@ export class Spine38Player {
       );
     }
 
+    console.log(gl.getParameter(gl.RENDERER));
+    console.log(gl.getParameter(gl.VENDOR));
+
     this.gl = gl;
     this.gl.pixelStorei(this.gl.UNPACK_ALIGNMENT, 1);
 
@@ -67,8 +69,7 @@ export class Spine38Player {
     });
   }
 
-  async  load(asset: any, settings?: CharacterSessionState) {
-
+  async load(asset: any, settings?: CharacterSessionState) {
     this.savedSettings = settings || null;
     const atlasUrl = asset.atlasFile.url;
     const skelUrl = asset.skelFile.url;
@@ -176,7 +177,6 @@ export class Spine38Player {
   }
 
   private setup(asset: any, atlasText: string, skelRawData: any) {
-
     try {
       const sizeMatch = atlasText.match(/size:\s*(\d+),\s*(\d+)/);
       const atlasExpectedWidth = sizeMatch ? parseInt(sizeMatch[1]) : 0;
@@ -289,12 +289,9 @@ export class Spine38Player {
       }
 
       if (asset.isBinary && !isActuallyJson) {
-
         const binary = new this.spine.SkeletonBinary(atlasLoader);
         skeletonData = binary.readSkeletonData(new Uint8Array(skelRawData));
-
       } else {
-
         const jsonParser = new this.spine.SkeletonJson(atlasLoader);
 
         let jsonText =
@@ -306,7 +303,6 @@ export class Spine38Player {
           const jsonObj = JSON.parse(jsonText);
 
           if (jsonObj.skeleton) {
-
             if (
               jsonObj.skeleton.spine &&
               jsonObj.skeleton.spine.startsWith("3.7")
@@ -432,7 +428,6 @@ export class Spine38Player {
   }
 
   private isPointInPoly(px: number, py: number, verts: Float32Array): boolean {
-
     let hit = false;
 
     for (let i = 0, j = verts.length - 2; i < verts.length; i += 2) {
@@ -456,7 +451,6 @@ export class Spine38Player {
   }
 
   private updateCamera() {
-
     if (!this.skeleton) return;
 
     const Vector2 = this.spine.webgl?.Vector2 || this.spine.Vector2;
@@ -499,7 +493,6 @@ export class Spine38Player {
   }
 
   public setSlotVisibility(slotName: string, visible: boolean) {
-
     if (visible) {
       this.hiddenSlots.delete(slotName);
 
@@ -510,7 +503,6 @@ export class Spine38Player {
     } else {
       this.hiddenSlots.add(slotName);
     }
-
   }
 
   public startHighlightLoop(slotName: string) {
@@ -614,11 +606,11 @@ export class Spine38Player {
     } else {
       // this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
       this.gl.blendFuncSeparate(
-        this.gl.SRC_ALPHA, 
-        this.gl.ONE_MINUS_SRC_ALPHA, 
-        this.gl.ONE, 
-        this.gl.ONE_MINUS_SRC_ALPHA
-    );
+        this.gl.SRC_ALPHA,
+        this.gl.ONE_MINUS_SRC_ALPHA,
+        this.gl.ONE,
+        this.gl.ONE_MINUS_SRC_ALPHA,
+      );
     }
 
     //Draw
@@ -661,10 +653,9 @@ export class Spine38Player {
   public destroy() {
     this.isDestroyed = true;
     cancelAnimationFrame(this.requestId);
-    
+
     if (this.shader) this.shader.dispose();
     if (this.batcher) this.batcher.dispose();
     if (this.assetManager) this.assetManager.dispose();
   }
-
 }
