@@ -83,10 +83,9 @@ func (u *UpdaterService) Startup(ctx context.Context) {
 
 func (u *UpdaterService) getPlatformKey() string {
 	if runtime.GOOS == "windows" {
-		// Matches your YAML: windows_standard_amd64 or windows_frameless_amd64
-		return fmt.Sprintf("windows_%s_%s", BuildVariant, runtime.GOARCH)
+		return fmt.Sprintf("windows_%s_%s_embed", BuildVariant, runtime.GOARCH)
 	}
-	// Matches your YAML: darwin_arm64 or darwin_amd64
+
 	fmt.Printf("darwin_%s", runtime.GOARCH)
 	return fmt.Sprintf("darwin_%s", runtime.GOARCH)
 }
@@ -100,8 +99,7 @@ func (u *UpdaterService) CheckForUpdates() (*CheckUpdateResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Set("User-Agent", "Motiv2D-Updater")
+	defer req.Body.Close()
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -162,7 +160,6 @@ func (u *UpdaterService) ProcessUpdate(info UpdateInfo) error {
 	}
 	defer resp.Body.Close()
 
-	// Assuming ProgressReader is defined in your progress_reader.go
 	progressReader := &ProgressReader{
 		Reader: resp.Body,
 		Total:  resp.ContentLength,
@@ -188,7 +185,6 @@ func (u *UpdaterService) ProcessUpdate(info UpdateInfo) error {
 		return u.applyMacUpdate(updateData)
 	}
 
-	// Standard Windows Binary Swap
 	err = selfupdate.Apply(bytes.NewReader(updateData), selfupdate.Options{})
 	if err != nil {
 		return fmt.Errorf("failed to apply update: %w", err)
@@ -199,8 +195,7 @@ func (u *UpdaterService) ProcessUpdate(info UpdateInfo) error {
 }
 
 func (u *UpdaterService) applyMacUpdate(data []byte) error {
-	// For Mac, we download a .zip. We need to extract the binary
-	// from motiv2d.app/Contents/MacOS/motiv2d to use selfupdate.
+
 	r, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		return err
@@ -208,7 +203,7 @@ func (u *UpdaterService) applyMacUpdate(data []byte) error {
 
 	var binData []byte
 	for _, f := range r.File {
-		// Look for the inner binary inside the app bundle
+
 		if filepath.Base(f.Name) == "motiv2d" && !f.FileInfo().IsDir() {
 			rc, err := f.Open()
 			if err != nil {

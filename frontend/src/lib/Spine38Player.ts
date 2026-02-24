@@ -1,6 +1,7 @@
 import type { CharacterSessionState } from "../stores/appStore";
 import { CameraManager } from "./CameraManager";
 import { triggerSpineRefresh } from "../stores/appStore";
+import { EventsEmit } from "../../wailsjs/runtime/runtime";
 
 export class Spine38Player {
   private assetManager: any;
@@ -45,6 +46,10 @@ export class Spine38Player {
       )) as WebGLRenderingContext;
 
     if (!gl) {
+       EventsEmit("link:log", {
+            message: `Could not create WebGL context. Spine 3.8 requires WebGL support.`,
+            level: "error",
+          });
       throw new Error(
         "Could not create WebGL context. Spine 3.8 requires WebGL support.",
       );
@@ -354,6 +359,10 @@ export class Spine38Player {
       this.updateCamera();
       this.render();
     } catch (err) {
+      EventsEmit("link:log", {
+            message: `[Spine 3.8] Critical Setup Error: ${err}`,
+            level: "error",
+          });
       console.error("[Spine 3.8] Critical Setup Error:", err);
     }
   }
