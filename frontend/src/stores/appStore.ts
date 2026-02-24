@@ -32,7 +32,9 @@ export const bottomPanelClp = writable(false);
 export const visibilityToggleSignal = writable(0);
 
 export const currentView = writable<"DASHBOARD" | "SPINE">("DASHBOARD");
-export const blurType = writable<"frosted" | "gaussian" | "pixel" | "none">("none");
+export const blurType = writable<"frosted" | "gaussian" | "pixel" | "none">(
+  "none",
+);
 export const backgroundBlur = writable(100);
 export const backgroundColor = writable<string>("#080708");
 export const backgroundOpacity = writable(100);
@@ -45,14 +47,19 @@ export const setView = (view: "DASHBOARD" | "SPINE") => {
 };
 
 export function getRgba(hex: string, opacity: number): string {
+  const cleanHex = hex.replace("#", "");
 
-  const cleanHex = hex.replace('#', '');
-  
   const r = parseInt(cleanHex.substring(0, 2), 16);
   const g = parseInt(cleanHex.substring(2, 4), 16);
   const b = parseInt(cleanHex.substring(4, 6), 16);
-  
+
   return `rgba(${r}, ${g}, ${b}, ${opacity / 100})`;
+}
+
+export interface FileInfo {
+  name: string;
+  path: string;
+  url: string;
 }
 
 export const spineState = writable({
@@ -359,35 +366,38 @@ export function generateShareCode(data: RemoteSource | RemoteSource[]): string {
   const isArray = Array.isArray(data);
   const items = isArray ? data : [data];
 
-  const compressed = items.map(r => {
-
-    const match = r.baseUrl.match(/repos\/([^\/]+\/[^\/]+)\/git\/trees\/([^\?]+)/);
+  const compressed = items.map((r) => {
+    const match = r.baseUrl.match(
+      /repos\/([^\/]+\/[^\/]+)\/git\/trees\/([^\?]+)/,
+    );
     const path = match ? `${match[1]}/${match[2]}` : r.baseUrl;
 
     return {
       n: r.name,
       p: path,
-      m: r.mode === 'auto' ? 0 : 1,
+      m: r.mode === "auto" ? 0 : 1,
       f: r.folderPaths,
-      u: r.metadataUrl ? r.metadataUrl : undefined 
+      u: r.metadataUrl ? r.metadataUrl : undefined,
     };
   });
 
   const json = JSON.stringify(isArray ? compressed : compressed[0]);
-  return "M2D:" + btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  return (
+    "M2D:" +
+    btoa(json).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
+  );
 }
 
 export function decodeShareCode(code: string): RemoteSource[] {
   if (!code.startsWith("M2D:")) return [];
 
   try {
-    const base64 = code.split(":")[1].replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = code.split(":")[1].replace(/-/g, "+").replace(/_/g, "/");
     const decoded = JSON.parse(atob(base64));
     const items = Array.isArray(decoded) ? decoded : [decoded];
 
-    return items.map(p => {
-
-      const parts = p.p.split('/');
+    return items.map((p) => {
+      const parts = p.p.split("/");
       const repoPath = `${parts[0]}/${parts[1]}`;
       const branch = parts[2];
 
@@ -401,7 +411,7 @@ export function decodeShareCode(code: string): RemoteSource[] {
         mode: p.m === 0 ? "auto" : "manual",
         folderPaths: p.f || [],
         mappingRules: [],
-        lastUpdated: Date.now()
+        lastUpdated: Date.now(),
       };
     });
   } catch (e) {
@@ -410,12 +420,13 @@ export function decodeShareCode(code: string): RemoteSource[] {
   }
 }
 
-// Live2D Metadata 
+// Live2D Metadata
 export interface Live2DMetadata {
   id: string;
   version: string;
-  modelJsonFile: { url: string };
-  textureFiles: Array<{ url: string }>;
+  modelJsonFile: FileInfo;
+  textureFiles: FileInfo[];
+  mocFile: FileInfo;
   isRemote?: boolean;
   sourceName?: string;
 }
@@ -431,11 +442,38 @@ export interface Live2DSessionState {
   parameters: Record<string, number>;
 }
 
+// Stores
 export const live2dLibrary = writable<Live2DMetadata[]>([]);
 export const activeLive2DCharacter = writable<Live2DMetadata | null>(null);
 export const live2dSettings = writable<Record<string, Live2DSessionState>>({});
 export const live2dUpdateSignal = writable(0);
 
+// Helper to keep the UI in sync
 export function triggerLive2DRefresh() {
   live2dUpdateSignal.update((n) => n + 1);
+}
+
+export function getLive2DSettingsFor(
+  id: string,
+  metadata: Live2DMetadata
+): Live2DSessionState {
+  const current = get(live2dSettings);
+
+  const defaults: Live2DSessionState = {
+    id,
+    camX: 0.5,
+    camY: 0.5,
+    zoom: 1,
+    currentAnimation: "",
+    currentExpression: "",
+    drawableVisibility: {},
+    parameters: {},
+  };
+
+  if (current[id]) {
+    return { ...defaults, ...current[id] };
+  }
+
+  live2dSettings.update((s) => ({ ...s, [id]: defaults }));
+  return defaults;
 }

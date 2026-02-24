@@ -12,10 +12,17 @@
     backgroundOpacity,
     blurType,
     backgroundBlur,
+
+    activeLive2DCharacter,
+    live2dSettings, 
+    live2dUpdateSignal,
   } from "../../stores/appStore";
   import { loadSpineRuntime } from "../../lib/SpineController";
   import { Spine38Player } from "../../lib/Spine38Player";
   import { Spine4xPlayer } from "../../lib/Spine4xPlayer";
+  import { Live2DController } from "../../lib/Live2DController";
+  import * as PIXI from "pixi.js";
+
 
   let canvas: HTMLCanvasElement;
   let currentPlayer: Spine38Player | Spine4xPlayer | null = null;
@@ -25,7 +32,11 @@
 
   let canvas4x: HTMLCanvasElement;
   let canvas38: HTMLCanvasElement;
-  let activeVersion: "3.8" | "4.x" | null = null;
+  let canvasLive2D: HTMLCanvasElement;
+  let pixiApp: PIXI.Application | null = null;
+
+  let activeVersion: "3.8" | "4.x" | "live2d" | null = null;
+  let live2dPlayer: Live2DController | null = null;
 
   $: if (
     $activeCharacter &&
@@ -247,6 +258,47 @@
         return `blur(${$backgroundBlur}px)`;
     }
   })();
+
+  // --- Live2D Logic ---
+  $: if ($activeLive2DCharacter && canvasLive2D && $activeLive2DCharacter.id !== lastLoadedId) {
+    lastLoadedId = $activeLive2DCharacter.id;
+    initLive2DPlayer($activeLive2DCharacter);
+  }
+
+  async function initLive2DPlayer(asset: any) {
+    const loadId = ++currentLoadId;
+    activeVersion = "live2d";
+
+    if (!pixiApp) {
+      pixiApp = new PIXI.Application({
+        view: canvasLive2D,
+        backgroundAlpha: 0,
+        antialias: true,
+        autoStart: true,
+        resizeTo: canvasLive2D.parentElement!
+      });
+    }
+
+    if (live2dPlayer) live2dPlayer.destroy();
+    live2dPlayer = new Live2DController(pixiApp, canvasLive2D);
+
+    const settings = $live2dSettings[asset.id] || { camX: 0.5, camY: 0.5, zoom: 1 };
+    
+    await live2dPlayer.load(asset.modelJsonFile.url, settings as any);
+    
+    if (loadId === currentLoadId) {
+      live2dUpdateSignal.update(n => n + 1);
+    }
+  }
+
+  function cleanupLive2D() {
+    if (live2dPlayer) {
+      live2dPlayer.destroy();
+      live2dPlayer = null;
+    }
+    activeVersion = null;
+  }
+  
 </script>
 
 <div
@@ -269,6 +321,12 @@
     class:hidden={activeVersion !== "3.8"}
     on:mousedown={handleCanvasClick}
     style:cursor={$isSelectSlot ? "crosshair" : "default"}
+  ></canvas>
+
+  <canvas
+    bind:this={canvasLive2D}
+    class:hidden={activeVersion !== "live2d"}
+
   ></canvas>
 </div>
 

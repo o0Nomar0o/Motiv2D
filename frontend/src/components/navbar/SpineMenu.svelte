@@ -18,6 +18,9 @@
     navState,
     isImportOpen,
     leftPanelClp,
+
+    activeLive2DCharacter,
+    live2dLibrary,
   } from "../../stores/appStore";
 
   import {

@@ -3,6 +3,7 @@ package common
 import (
 	"bufio"
 	"fmt"
+	"motiv2d/pkg/common"
 	"motiv2d/pkg/spine-services/detector"
 	"net/url"
 	"os"
@@ -89,7 +90,7 @@ func (s *SpineCommons) GroupFilesIntoAssets(paths []string) []SpineMetadata {
 			HasSkel:   true,
 			IsRemote:  false,
 			SourceURL: "",
-			SkelFile: FileInfo{
+			SkelFile: common.FileInfo{
 				Name:      filepath.Base(sp),
 				LocalPath: sp,
 				URL:       "/spine-assets/" + url.PathEscape(filepath.ToSlash(sp)),
@@ -109,7 +110,7 @@ func (s *SpineCommons) GroupFilesIntoAssets(paths []string) []SpineMetadata {
 		}
 
 		if targetAtlas != "" {
-			asset.AtlasFile = FileInfo{
+			asset.AtlasFile = common.FileInfo{
 				Name:      filepath.Base(targetAtlas),
 				LocalPath: targetAtlas,
 				URL:       "/spine-assets/" + url.PathEscape(filepath.ToSlash(targetAtlas)),
@@ -120,7 +121,7 @@ func (s *SpineCommons) GroupFilesIntoAssets(paths []string) []SpineMetadata {
 			requiredPngs := parsePngsFromAtlas(targetAtlas)
 			for _, pngName := range requiredPngs {
 				if fullPath, exists := allFiles[pngName]; exists {
-					asset.PngFiles = append(asset.PngFiles, FileInfo{
+					asset.PngFiles = append(asset.PngFiles, common.FileInfo{
 						Name:      pngName,
 						LocalPath: fullPath,
 						URL:       "/spine-assets/" + url.PathEscape(filepath.ToSlash(fullPath)),

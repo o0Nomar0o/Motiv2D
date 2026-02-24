@@ -16,6 +16,48 @@ export namespace common {
 	        this.url = source["url"];
 	    }
 	}
+	export class Live2DMetadata {
+	    id: string;
+	    version: string;
+	    modelJsonFile: FileInfo;
+	    textureFiles: FileInfo[];
+	    mocFile: FileInfo;
+	    isRemote: boolean;
+	    sourceName: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Live2DMetadata(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.version = source["version"];
+	        this.modelJsonFile = this.convertValues(source["modelJsonFile"], FileInfo);
+	        this.textureFiles = this.convertValues(source["textureFiles"], FileInfo);
+	        this.mocFile = this.convertValues(source["mocFile"], FileInfo);
+	        this.isRemote = source["isRemote"];
+	        this.sourceName = source["sourceName"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class SpineMetadata {
 	    id: string;
 	    version: string;

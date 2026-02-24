@@ -4,6 +4,9 @@
     remoteSources,
     characterLibrary,
     activeCharacter,
+
+    live2dLibrary, 
+    activeLive2DCharacter
   } from "../../stores/appStore";
   import { fade, fly } from "svelte/transition";
   import { onMount, onDestroy } from "svelte";
@@ -26,6 +29,9 @@
   } from "../../../wailsjs/go/common/SpineCommons";
   import { CheckSourceHealth, GetCacheFolder, GetCachePath } from "../../../wailsjs/go/remote/RemoteHandler";
   import { EventsOn } from "../../../wailsjs/runtime/runtime";
+  import { 
+    ImportFromDialog as ImportLive2DFromDialog 
+  } from "../../../wailsjs/go/common/CubismCommons";
 
   export let isOpen = false;
 
@@ -84,6 +90,19 @@
   let unsubscribe: () => void;
 
   onMount(() => {
+
+    //L2D
+    const unlistenLive2D = EventsOn("live2d_discovered", (asset) => {
+      live2dLibrary.update((existing) => {
+        if (existing.some((e) => e.id === asset.id)) return existing;
+        
+        const newList = [...existing, asset];
+        activeLive2DCharacter.update(current => current ?? asset);
+        return newList;
+      });
+    });
+
+    //Spine
     const unlisten = EventsOn("asset_discovered", (asset) => {
       console.log("Asset found:", asset.id);
 
@@ -104,7 +123,7 @@
       });
     });
 
-    return () => unlisten();
+    return () => {unlistenLive2D(); unlisten();}
   });
 
   onDestroy(() => {
@@ -131,6 +150,18 @@
       close();
     } catch (err) {
       console.error("Recursive scan failed:", err);
+    } finally {
+      isScanning = false;
+    }
+  }
+
+  async function handleLive2DImport() {
+    try {
+      isScanning = true;
+      await ImportLive2DFromDialog(); 
+      close();
+    } catch (err) {
+      console.error("Live2D scan failed:", err);
     } finally {
       isScanning = false;
     }
@@ -228,6 +259,16 @@
                       ></div>
                     </div>
                   </button>
+
+                  <button class="minimal-import-row" on:click={handleLive2DImport}>
+  <div class="icon-mask md folder-icon" style="--icon: url({iconFolder})"></div>
+  <span class="label">Import Live2D</span>
+  <div class="line-filler"></div>
+  <div class="action-zone">
+    <span class="mono-hint">SCAN FOR .MODEL3.JSON FILES</span>
+    <div class="icon-mask sm arrow-icon" style="--icon: url({iconUpload})"></div>
+  </div>
+</button>
 
                   <button
                     class="minimal-import-row"

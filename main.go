@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	cubismcommons "motiv2d/pkg/live-2d-services/common"
 	"motiv2d/pkg/monitors"
 	"motiv2d/pkg/services"
 	spineservices "motiv2d/pkg/spine-services"
@@ -37,6 +38,7 @@ func main() {
 	fileService := services.NewCLIService()
 	runtimeService := monitors.NewAnalyzeService()
 	spineService := spineservices.NewSpineService()
+	cubismCommon := cubismcommons.NewCubismCommon()
 	spineCommon := common.NewSpineCommon()
 	remoteHandler := remote.NewRemoteHandler()
 	updateService := update.NewUpdaterService()
@@ -46,7 +48,7 @@ func main() {
 
 	exePath, _ := os.Executable()
 	bundleDir := filepath.Join(filepath.Dir(exePath), "wv2runtime")
-	
+
 	runtimePath := ""
 	if _, err := os.Stat(bundleDir); err == nil {
 		runtimePath = bundleDir
@@ -80,7 +82,7 @@ func main() {
 						http.Error(w, "Invalid path encoding", http.StatusBadRequest)
 						return
 					}
-
+					
 					fmt.Printf("WAILS ASSET REQUEST: %s\n", decodedPath)
 					wailsRuntime.EventsEmit(app.ctx, "link:log", map[string]string{
 						"message": "WAILS ASSET REQUEST: " + decodedPath,
@@ -101,8 +103,12 @@ func main() {
 						return
 					}
 
-					if strings.HasSuffix(filePath, ".png") {
+					ext := strings.ToLower(filepath.Ext(filePath))
+					switch ext {
+					case ".png":
 						w.Header().Set("Content-Type", "image/png")
+					case ".moc3", ".model3.json", ".motion3.json":
+						w.Header().Set("Content-Type", "application/octet-stream")
 					}
 
 					w.Write(data)
@@ -126,6 +132,7 @@ func main() {
 			spineCommon.Startup(ctx)
 			remoteHandler.Startup(ctx)
 			updateService.Startup(ctx)
+			cubismCommon.Startup(ctx)
 		},
 
 		Bind: []interface{}{
@@ -136,6 +143,7 @@ func main() {
 			spineCommon,
 			remoteHandler,
 			updateService,
+			cubismCommon,
 		},
 
 		Menu: app.makeMenu(),
@@ -157,7 +165,7 @@ func main() {
 			BackdropType:                      windows.Mica,
 			DisableWindowIcon:                 true,
 			DisableFramelessWindowDecorations: false,
-			WebviewBrowserPath: runtimePath,
+			WebviewBrowserPath:                runtimePath,
 		},
 	})
 

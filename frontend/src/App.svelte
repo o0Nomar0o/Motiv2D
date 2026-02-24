@@ -32,6 +32,8 @@
     initRemotes,
     remoteSources,
     visibilityToggleSignal,
+    activeLive2DCharacter,
+    live2dUpdateSignal,
   } from "./stores/appStore";
 
   //Wails & Svelte Import
@@ -218,8 +220,10 @@
       {/if}
     {/if}
 
-    {#if isSpineMode && $activeCharacter}
-      {#key $activeCharacter.id + $spineUpdateSignal}
+    <!-- {#if isSpineMode && $activeCharacter  }
+      {#key $activeCharacter.id + $spineUpdateSignal} -->
+    {#if $currentView === "SPINE"}
+      {#key ($activeCharacter?.id || $activeLive2DCharacter?.id) + $spineUpdateSignal + $live2dUpdateSignal}
         <div class="animation-panel">
           <AnimationSidebar
             bind:this={animSidebarRef}
