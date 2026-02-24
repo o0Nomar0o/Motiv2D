@@ -99,7 +99,6 @@ func (u *UpdaterService) CheckForUpdates() (*CheckUpdateResponse, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer req.Body.Close()
 
 	resp, err := client.Do(req)
 	if err != nil {
