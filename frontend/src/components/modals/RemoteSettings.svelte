@@ -1115,6 +1115,7 @@
     border-radius: 20px;
     padding: 2px;
     border: 1px solid rgba(255, 255, 255, 0.03);
+  
   }
 
   .glass-pill {
@@ -1122,6 +1123,7 @@
     align-items: center;
     width: 36px; /* Sizing tightened for elegance */
     height: 36px;
+
     /* background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
@@ -1140,7 +1142,7 @@
   }
 
   .glass-pill.expanded {
-    width: 450px;
+    width: 556px;
     /* background: rgba(255, 255, 255, 0.07);
     border-color: rgba(255, 255, 255, 0.2); */
   }
