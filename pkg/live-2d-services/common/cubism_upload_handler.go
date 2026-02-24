@@ -31,13 +31,12 @@ func (s *CubismCommons) recursiveImport(rootSearchDir string, isRemote bool) {
 			return nil
 		}
 
-		// Look for the entry point: .model3.json
+		//.model3.json
 		if !d.IsDir() && strings.HasSuffix(strings.ToLower(d.Name()), ".model3.json") {
 			asset := s.ProcessLive2DAsset(path)
 			if asset != nil {
 				asset.IsRemote = isRemote
 				
-				// Extract Source Name from folder structure if remote
 				if isRemote {
 					relPath, _ := filepath.Rel(rootSearchDir, path)
 					parts := strings.Split(filepath.ToSlash(relPath), "/")
@@ -73,16 +72,13 @@ func (s *CubismCommons) ProcessLive2DAsset(modelJsonPath string) *Live2DMetadata
 	}
 
 	modelDir := filepath.Dir(modelJsonPath)
-	// ID is usually the folder name
 	assetID := filepath.Base(modelDir)
 
-	// Helper to create FileInfo with URL encoding
 	createFileInfo := func(relativePath string) common.FileInfo {
 		fullPath := filepath.Join(modelDir, relativePath)
 		return common.FileInfo{
 			Name:      filepath.Base(fullPath),
 			LocalPath: fullPath,
-			// Using spine-assets prefix as requested for now to utilize existing server
 			URL: "/spine-assets/" + url.PathEscape(filepath.ToSlash(fullPath)),
 		}
 	}
@@ -99,13 +95,9 @@ func (s *CubismCommons) ProcessLive2DAsset(modelJsonPath string) *Live2DMetadata
 		MocFile:       createFileInfo(m3.FileReferences.Moc),
 	}
 
-	// 2. Map Textures (handles multiple images in the textures/ folder)
 	for _, texPath := range m3.FileReferences.Textures {
 		asset.TextureFiles = append(asset.TextureFiles, createFileInfo(texPath))
 	}
-
-	// 3. Optional: Verify physics file if it exists
-	// (You can add PhysicsFile to your metadata struct if needed)
 
 	return asset
 }
