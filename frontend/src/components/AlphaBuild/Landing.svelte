@@ -5,6 +5,7 @@
   import changelogRaw from "../../assets/CHANGELOG.md?raw";
   import { onMount } from "svelte";
   import { GetMetadata } from "../../../wailsjs/go/update/UpdaterService";
+  import { EventsEmit } from "../../../wailsjs/runtime";
 
   let scrollY = 0;
   let metadata = null;
@@ -52,6 +53,14 @@
     isOpenLog = true;
     console.log("OPENING");
   }
+
+  function openAbout() {
+    EventsEmit("open_about_modal");
+  }
+
+  function checkUpdates() {
+    EventsEmit("open_update_modal");
+  }
 </script>
 
 <svelte:window bind:scrollY />
@@ -84,7 +93,19 @@
             <span class="italic">Spine2D</span> <br />
             <span class="italic dimmed">+ Live2D Cubism (Soon)</span>
           </p>
+
           <div class="hero-action">
+            <div class="hero-info-stack">
+              <button class="info-btn" on:click={openAbout}>
+                <span class="btn-inner">ABOUT</span>
+              </button>
+              <button class="info-btn" on:click={checkUpdates}>
+                <span class="btn-inner">UPDATES</span>
+              </button>
+            </div>
+
+            <div class="action-divider"></div>
+
             <button class="launch-pill" on:click={() => handleLaunch()}>
               LAUNCH VIEWER
               <span class="pill-arrow">→</span>
@@ -202,6 +223,7 @@
     margin-bottom: 20vh;
   }
 
+
   .giant-display {
     font-family: "Inter", sans-serif;
     font-size: 18vw;
@@ -253,7 +275,7 @@
     font-size: 0.8em;
   }
 
-  .launch-pill {
+  /* .launch-pill {
     background: transparent;
     border: 1px solid #fff;
     color: #fff;
@@ -270,7 +292,7 @@
 
     transform: scale(1.05);
     border-color: var(--accent);
-  }
+  } */
 
   /* Bento Grid */
   .section-label {
@@ -402,5 +424,90 @@
     color: rgba(255, 255, 255, 0.5);
     line-height: 1.5;
     margin: 0;
+  }
+
+  .hero-action {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-top: 2rem;
+  }
+
+
+  .hero-info-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .action-divider {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+  }
+
+  .info-btn {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.4); /* Dimmed by default */
+
+    padding: 0.4rem 1.2rem;
+    border-radius: 6px; /* Slightly squarer for utility feel */
+
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9px; /* Smaller font than the primary */
+    font-weight: 500;
+    letter-spacing: 0.1em;
+
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    white-space: nowrap;
+    text-align: center;
+    width: 80px; /* Fixed width keeps the stack neat */
+  }
+
+  .info-btn:hover {
+    background: var(--accent-2); 
+    border-color: var(--accent-2);
+    color: #000;
+    transform: translateX(4px);
+  }
+  .launch-pill {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    color: #fff;
+    padding: 1.2rem 2.8rem;
+    border-radius: 100px;
+    font-family: "JetBrains Mono", monospace;
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .launch-pill:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    transform: scale(1.05);
+  }
+
+  .pill-arrow {
+    font-size: 1.2em;
+    transition: transform 0.3s ease;
+  }
+
+  .launch-pill:hover .pill-arrow {
+    transform: translateX(5px);
   }
 </style>
