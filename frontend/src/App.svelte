@@ -6,7 +6,7 @@
   import SenPanel from "./components/navbar/SecondaryPanel.svelte";
   import Sidebar from "./components/extraction/Sidebar.svelte";
   import SpineCanvas from "./components/canvas/SpineCanvas.svelte";
-  import AnimationSidebar from "./components/canvas/AnimationSidebar.svelte";
+  import SpineSidebar from "./components/canvas/SpineSidebar.svelte";
   import CharacterSidebar from "./components/canvas/CharacterSidebar.svelte";
   import BottomPanel from "./components/navbar/BottomPanel.svelte";
   import SettingsModal from "./components/modals/SettingsModal.svelte";
@@ -34,6 +34,7 @@
     visibilityToggleSignal,
     activeLive2DCharacter,
     live2dUpdateSignal,
+    isLive2D,
   } from "./stores/appStore";
 
   //Wails & Svelte Import
@@ -41,6 +42,7 @@
   import { Platform } from "../wailsjs/go/main/App";
   import { onMount, onDestroy } from "svelte";
   import { CheckForUpdates } from "../wailsjs/go/update/UpdaterService";
+  import CubismSidebar from "./components/canvas/CubismSidebar.svelte";
 
   let platform: "darwin" | "windows" | "linux" = "windows";
 
@@ -58,7 +60,8 @@
   let canvasComponent: SpineCanvas;
   let viewerRef: Viewer;
   let rightSidebarRef: SenPanel;
-  let animSidebarRef: AnimationSidebar;
+  let animSidebarRef: SpineSidebar;
+  let cubismSidebarRef: CubismSidebar;
   let charSidebarRef: CharacterSidebar;
 
   // $: leftMargin = $leftPanelClp ? "1rem" : "calc(1.5rem + 305px)";
@@ -104,7 +107,10 @@
       center: () => canvasComponent?.centerCharacter(),
       next_asset: () => charSidebarRef?.nextCharacter(),
       previous_asset: () => charSidebarRef?.previousCharacter(),
-      next_slot: () => animSidebarRef?.nextAnimation(),
+      next_slot: () => {
+        if ($isLive2D) cubismSidebarRef?.nextAnimation();
+        else animSidebarRef?.nextAnimation();
+      },
       previous_slot: () => animSidebarRef?.previousAnimation(),
       slot_picker: () => animSidebarRef?.togglePicker(),
       toggle_visibility: () => {
@@ -225,11 +231,18 @@
     {#if $currentView === "SPINE"}
       {#key ($activeCharacter?.id || $activeLive2DCharacter?.id) + $spineUpdateSignal + $live2dUpdateSignal}
         <div class="animation-panel">
-          <AnimationSidebar
-            bind:this={animSidebarRef}
-            player={canvasComponent?.getPlayer()}
-            characterMetadata={$activeCharacter}
-          />
+          {#if $isLive2D}
+            <CubismSidebar
+              player={canvasComponent?.getPlayer()}
+              bind:this={cubismSidebarRef}
+            />
+          {:else}
+            <SpineSidebar
+              bind:this={animSidebarRef}
+              player={canvasComponent?.getPlayer()}
+              characterMetadata={$activeCharacter}
+            />
+          {/if}
         </div>
       {/key}
       <div class="right-overlay">

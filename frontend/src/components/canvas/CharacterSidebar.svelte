@@ -5,6 +5,8 @@
     rightPanelClp,
     characterSettings,
     isImportOpen,
+    activeLive2DCharacter,
+    isLive2D,
   } from "../../stores/appStore";
   import { fade } from "svelte/transition";
 
@@ -20,8 +22,18 @@
   );
 
   function selectCharacter(char: any) {
-    activeCharacter.set(char);
+    // activeCharacter.set(char);
     
+    if (char.isLive2D || char.path?.endsWith('.moc3')) {
+      isLive2D.set(true);
+      activeLive2DCharacter.set(char);
+      activeCharacter.set(null); // Clear spine character
+    } else {
+      isLive2D.set(false);
+      activeCharacter.set(char);
+      activeLive2DCharacter.set(null); // Clear live2d character
+    }
+
   }
 
   let scrollTimeout: number;

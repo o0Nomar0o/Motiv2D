@@ -16,6 +16,7 @@
     activeLive2DCharacter,
     live2dSettings, 
     live2dUpdateSignal,
+    isLive2D,
   } from "../../stores/appStore";
   import { loadSpineRuntime } from "../../lib/SpineController";
   import { Spine38Player } from "../../lib/Spine38Player";
@@ -37,6 +38,8 @@
 
   let activeVersion: "3.8" | "4.x" | "live2d" | null = null;
   let live2dPlayer: Live2DController | null = null;
+
+  $: $isLive2D = !!$activeLive2DCharacter;
 
   $: if (
     $activeCharacter &&
@@ -152,9 +155,18 @@
     }
   });
 
+  // export function getPlayer() {
+  //   return currentPlayer;
+  // }
+
   export function getPlayer() {
-    return currentPlayer;
+  // If we are in Live2D mode, return that controller
+  if (activeVersion === "live2d") {
+    return live2dPlayer;
   }
+  // Otherwise return the Spine player
+  return currentPlayer;
+}
 
   $: if (!$activeCharacter && currentPlayer) {
     //Kill the renderer when character is removed
@@ -259,7 +271,7 @@
     }
   })();
 
-  // --- Live2D Logic ---
+  //  == Live2D ==
   $: if ($activeLive2DCharacter && canvasLive2D && $activeLive2DCharacter.id !== lastLoadedId) {
     lastLoadedId = $activeLive2DCharacter.id;
     initLive2DPlayer($activeLive2DCharacter);

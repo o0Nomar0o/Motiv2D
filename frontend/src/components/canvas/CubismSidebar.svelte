@@ -1,0 +1,998 @@
+<script lang="ts">
+  import { fly } from "svelte/transition";
+  import { cubicOut } from "svelte/easing";
+  import { tick } from "svelte";
+  import { 
+    activeLive2DCharacter, 
+    live2dUpdateSignal, 
+    isSelectSlot,
+    selectedSlotName,
+    leftPanelClp, 
+    live2dSettings,
+    getLive2DSettingsFor,
+    activeSidebarTab
+  } from "../../stores/appStore";
+  import VisibilityOn from "../../assets/images/visibility-on.svg";
+  import VisibilityOff from "../../assets/images/visibility-off.svg";
+  import VisibilityPreview from "../../assets/images/visibility-preview.svg";
+  import CenterCamera from "../../assets/images/origin.svg";
+
+  export let player: any; 
+
+  let animations: string[] = [];
+  let slots: any[] = [];
+  let groupedSlots: { [key: string]: any[] } = {};
+  let searchQuery = "";
+  let currentAnimName = "";
+  let highlightedSlot: string | null = null;
+  let scrollContainer: HTMLElement;
+
+  $: activeTabIndex = $activeSidebarTab === "animations" ? 0 : 1;
+
+  $: if (player && ($live2dUpdateSignal || $activeLive2DCharacter)) {
+    refreshData();
+  }
+
+  function refreshData() {
+    const internal = player.model?.internalModel;
+    if (!internal) return;
+
+    // 1. Load Animations
+    animations = Object.keys(internal.motionManager?.definitions || {});
+    
+    const charId = $activeLive2DCharacter?.id;
+    const savedVisibility = charId ? ($live2dSettings[charId]?.drawableVisibility || {}) : {};
+    const drawableIds = internal.getDrawableIDs() || [];
+
+    const rawSlots = drawableIds.map(id => {
+      let isVisible = savedVisibility[id] !== undefined 
+        ? savedVisibility[id] 
+        : !player.hiddenDrawables.has(id);
+      return { name: id, visible: isVisible };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+
+    slots = rawSlots;
+
+    const tempGroups: { [key: string]: any[] } = {};
+    const MAX_ITEMS = 105;
+
+    rawSlots.forEach((slot) => {
+      const parts = slot.name.split(/[_\.]/);
+      let baseName = parts.length > 1 
+        ? parts[0].toUpperCase() 
+        : slot.name.charAt(0).toUpperCase();
+
+      if (!tempGroups[baseName]) tempGroups[baseName] = [];
+      tempGroups[baseName].push(slot);
+    });
+
+    const finalGroups: { [key: string]: any[] } = {};
+    Object.entries(tempGroups).forEach(([key, items]) => {
+      if (items.length <= MAX_ITEMS) {
+        finalGroups[key] = items;
+      } else {
+        for (let i = 0; i < items.length; i += MAX_ITEMS) {
+          const chunk = items.slice(i, i + MAX_ITEMS);
+          const chunkIndex = Math.floor(i / MAX_ITEMS) + 1;
+          finalGroups[`${key}-${chunkIndex}`] = chunk;
+        }
+      }
+    });
+
+    groupedSlots = finalGroups;
+  }
+
+  function play(name: string) {
+    player.playAnimation(name);
+    currentAnimName = name;
+  }
+
+  function handleVisibilityChange(id: string, isChecked: boolean) {
+
+    player.setDrawableVisibility(id, isChecked);
+    highlightedSlot = null;
+
+    live2dSettings.update((all) => {
+        const charId = $activeLive2DCharacter!.id;
+        const current = getLive2DSettingsFor(charId, $activeLive2DCharacter!);
+        return {
+            ...all,
+            [charId]: {
+                ...current,
+                drawableVisibility: { ...(current.drawableVisibility || {}), [id]: isChecked },
+            },
+        };
+    });
+
+    slots = slots.map(s => s.name === id ? { ...s, visible: isChecked } : s);
+    for (const group in groupedSlots) {
+      const item = groupedSlots[group].find(s => s.name === id);
+      if (item) { item.visible = isChecked; break; }
+    }
+    groupedSlots = { ...groupedSlots };
+  }
+
+  function toggleGroupVisibility(group: string, visible: boolean) {
+    const items = groupedSlots[group];
+    items.forEach(item => {
+      handleVisibilityChange(item.name, visible);
+    });
+  }
+
+  function isGroupVisible(group: string): boolean {
+    return groupedSlots[group]?.some(s => s.visible) ?? false;
+  }
+
+  function toggleHighlight(id: string) {
+    if (highlightedSlot === id) {
+    //   player.stopHighlightLoop();
+      highlightedSlot = null;
+    } else {
+    //   player.startHighlightLoop(id);
+      highlightedSlot = id;
+    }
+    slots = [...slots]; 
+  }
+
+  function toggleAllFilteredSlots() {
+    if (filteredSlots.length === 0) return;
+    const targetVisible = !filteredSlots[0].visible;
+    filteredSlots.forEach(slot => handleVisibilityChange(slot.name, targetVisible));
+  }
+
+  async function scrollToGroup(groupName: string) {
+    const el = document.querySelector(`[data-group-anchor="${groupName}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("flash-highlight");
+      setTimeout(() => el.classList.remove("flash-highlight"), 1500);
+    }
+  }
+
+  function center() {
+    player.cameraManager.x = 0;
+    player.cameraManager.y = 0;
+    player.cameraManager.zoom = 1;
+  }
+
+  $: filteredAnimations = animations.filter(a => a.toLowerCase().includes(searchQuery.toLowerCase()));
+  $: filteredSlots = slots.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  $: if ($activeSidebarTab) searchQuery = "";
+
+</script>
+
+<!-- THE SAME AS SPINESIDEBAR -->
+<div class="sidebar-container liquid-glass" class:collapsed={$leftPanelClp} on:mousedown|stopPropagation>
+  <section class="config-wrap">
+    <div class="section-header-row glass-header">
+      <h3 class="section-label">Live2D Controller</h3>
+      <div class="header-actions">
+        <div class="tool-group">
+          <button class="icon-tool-btn" on:click={center} title="Center View">
+            <div class="icon-mask" style="--icon: url({CenterCamera})"></div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="segmented-control">
+    <div class="thumb-container">
+      <div class="slider-thumb" style="transform: translateX({activeTabIndex * 100}%);"></div>
+    </div>
+    <button class="segment-btn" class:active={$activeSidebarTab === 'animations'} on:click={() => $activeSidebarTab = 'animations'}>
+        <span>Animations</span>
+    </button>
+    <button class="segment-btn" class:active={$activeSidebarTab === 'slots'} on:click={() => $activeSidebarTab = 'slots'}>
+        <span>Drawables</span>
+    </button>
+  </div>
+
+  <div class="vertical-layout-wrapper">
+    <div class="search-container">
+      <div class="input-wrapper">
+        <input bind:value={searchQuery} placeholder="Search {$activeSidebarTab}..." class="search-input" />
+        {#if searchQuery}<button class="clear-search" on:click={() => (searchQuery = "")}>×</button>{/if}
+      </div>
+      {#if $activeSidebarTab === 'slots'}
+          <button class="picker-btn" class:active={$isSelectSlot} on:click={() => $isSelectSlot = !$isSelectSlot}>
+              <div class="icon-mask" style="--icon: url({VisibilityPreview})"></div>
+          </button>
+      {/if}
+    </div>
+
+    <div class="main-content-wrapper">
+      {#if $activeSidebarTab === "slots" && !searchQuery}
+        <div class="index-navigator" in:fly={{ x: -10, duration: 300 }}>
+          {#each Object.keys(groupedSlots) as group}
+            <button class="index-item" on:click={() => scrollToGroup(group)}>
+              {group.slice(0, 3)}
+            </button>
+          {/each}
+        </div>
+      {/if}
+
+      <div class="scroll-content custom-scrollbar" bind:this={scrollContainer}>
+        <div class="list-stack" in:fly={{ y: 10, duration: 400, easing: cubicOut }}>
+          {#if $activeSidebarTab === 'animations'}
+            {#each filteredAnimations as anim}
+              <button class="anim-item" class:active={currentAnimName === anim} on:click={() => play(anim)}>
+                <div class="indicator"></div>
+                <span>{anim}</span>
+              </button>
+            {/each}
+          {:else}
+            {#if searchQuery}
+              <div class="search-results-header">
+                <span class="results-count">{filteredSlots.length} results</span>
+                <button class="bulk-toggle-btn" on:click={toggleAllFilteredSlots}>
+                  <div class="icon-mask" style="--icon: url({VisibilityOn}); background-color: var(--accent);"></div>
+                </button>
+              </div>
+              {#each filteredSlots as slot (slot.name)}
+                <div class="slot-item" class:highlighted={highlightedSlot === slot.name}>
+                  <button class="eye-btn" on:click={() => toggleHighlight(slot.name)}>
+                    <div class="icon-mask {highlightedSlot === slot.name ? 'active-red' : 'active-gray'}" style="--icon: url({VisibilityPreview})"></div>
+                  </button>
+                  <button class="visibility-toggle" on:click={() => handleVisibilityChange(slot.name, !slot.visible)}>
+                    <div class="icon-mask" style="--icon: url({slot.visible ? VisibilityOn : VisibilityOff}); background-color: {slot.visible ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)'};"></div>
+                  </button>
+                  <span class="mono-text">{slot.name}</span>
+                </div>
+              {/each}
+            {:else}
+              {#each Object.entries(groupedSlots) as [group, items]}
+                <div class="group-container">
+                  <div class="group-header">
+                    <span class="group-line"></span>
+                    <span class="group-label" data-group-anchor={group}>{group}</span>
+                    <button class="visibility-toggle mini" on:click={() => toggleGroupVisibility(group, !isGroupVisible(group))}>
+                      <div class="icon-mask" style="--icon: url({isGroupVisible(group) ? VisibilityOn : VisibilityOff}); background-color: {isGroupVisible(group) ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)'};"></div>
+                    </button>
+                  </div>
+                  <div class="group-items">
+                    {#each items as slot (slot.name)}
+                      <div class="slot-item" class:highlighted={highlightedSlot === slot.name}>
+                        <div class="tree-branch"></div>
+                        <button class="eye-btn" on:click={() => toggleHighlight(slot.name)}>
+                          <div class="icon-mask {highlightedSlot === slot.name ? 'active-red' : 'active-gray'}" style="--icon: url({VisibilityPreview})"></div>
+                        </button>
+                        <button class="visibility-toggle" on:click={() => handleVisibilityChange(slot.name, !slot.visible)}>
+                          <div class="icon-mask" style="--icon: url({slot.visible ? VisibilityOn : VisibilityOff}); background-color: {slot.visible ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)'};"></div>
+                        </button>
+                        <span class="mono-text">{slot.name}</span>
+                      </div>
+                    {/each}
+                  </div>
+                </div>
+              {/each}
+            {/if}
+          {/if}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .search-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 1rem;
+    flex-shrink: 0;
+    height: 36px;
+  }
+
+  .input-wrapper {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .picker-btn {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .picker-btn:hover {
+    background: rgba(11, 11, 11, 0.07);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .picker-btn.active {
+    background: rgba(181, 181, 181, 0.06);
+    border-color: rgba(255, 255, 255, 0.4);
+    box-shadow:
+      inset 0 0 8px rgba(255, 255, 255, 0.05),
+      0 4px 15px rgba(0, 0, 0, 0.2);
+  }
+
+  .picker-btn .icon-mask {
+    width: 16px !important;
+    height: 16px !important;
+    background-color: rgba(255, 255, 255, 0.4);
+    transition: all 0.3s ease;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  }
+
+  .picker-btn.active .icon-mask {
+    background-color: #ffffff;
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+  }
+
+  .picker-btn::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      45deg,
+      transparent,
+      rgba(255, 255, 255, 0.03),
+      transparent
+    );
+    transform: rotate(45deg);
+    pointer-events: none;
+  }
+
+  .section-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .vertical-layout-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .search-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 4px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .results-count {
+    font-size: 9px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.3);
+    font-family: "MarklMono", monospace;
+  }
+
+  .bulk-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .bulk-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent);
+  }
+
+  .bulk-toggle-btn .icon-mask {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .search-input {
+    width: 100%;
+    box-sizing: border-box;
+
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 8px 12px;
+    padding-right: 30px;
+    color: white;
+    font-family: "MarklMono", monospace;
+    font-size: 11px;
+    outline: none;
+
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .search-input:focus {
+    border-color: var(--accent);
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  .search-input::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .clear-search {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .clear-search:hover {
+    color: var(--accent);
+  }
+
+  .v-resizer {
+    height: 6px;
+    margin: 4px 0;
+    cursor: ns-resize;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .v-resizer:hover,
+  .v-resizer.resizing {
+    background: var(--accent);
+  }
+
+  .mixer-section {
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .sidebar-container.collapsed {
+    transform: translateX(-360px);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .sidebar-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1.25rem;
+    color: white;
+    user-select: none;
+    pointer-events: auto;
+
+    overflow: hidden;
+    transition:
+      transform 0.35s cubic-bezier(0.25, 1, 0.25, 1),
+      opacity 0.4s ease;
+  }
+
+  .liquid-glass {
+    background: rgba(10, 10, 10, 0.5);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  /* WRAPPERS */
+  .main-content-wrapper {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    gap: 4px;
+  }
+
+  .index-navigator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 22px;
+    border-radius: 100px;
+    padding: 10px 0;
+    margin: 10px 0;
+    border-width: 1px 0 1px 0;
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+
+    max-height: 80%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 1;
+    gap: 12px;
+
+    -webkit-overflow-scrolling: touch;
+
+    user-select: none;
+    height: fit-content;
+    align-self: flex-start;
+  }
+
+  .index-navigator::-webkit-scrollbar {
+    display: none;
+  }
+  .index-navigator::-webkit-scrollbar-thumb {
+    display: none;
+  }
+
+  .index-item {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.3);
+    font-family: "Rail", sans-serif;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    text-align: center;
+    flex-shrink: 0;
+    width: 32px;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-align: center;
+  }
+
+  .index-item:hover {
+    color: var(--accent);
+    transform: scale(1.1);
+  }
+
+  .section-label {
+    font-family: "Rail", sans-serif;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.75rem;
+  }
+
+ 
+  .config-wrap {
+    margin-bottom: 1.5rem;
+    flex-shrink: 0;
+  }
+  .skin-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .skin-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-family: "MarklMono", monospace;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .skin-btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* SEGMENTED CONTROL */
+  .segmented-control {
+    --pill-height: 34px;
+    --inner-padding: 1.5px;
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: var(--pill-height);
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 100px;
+    padding: var(--inner-padding);
+    margin-bottom: 1.25rem;
+    flex-shrink: 0;
+    /* border-width: 1px 0 1px 0;
+    border-style: solid;
+    border-color: rgba(255, 255, 255, 0.1); */
+  }
+
+  .thumb-container {
+    position: absolute;
+    top: 0;
+    left: calc(var(--inner-padding) + 1.5px);
+    right: calc(var(--inner-padding) + 1.5px);
+    bottom: 1px;
+    display: flex;
+    align-items: center;
+    z-index: 1;
+  }
+
+  .slider-thumb {
+    height: calc(var(--pill-height) - (var(--inner-padding) * 2));
+    width: 50%;
+    background: var(--accent);
+    border-radius: 100px;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .segment-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .segment-btn span {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: "Rail";
+  }
+  .segment-btn.active span {
+    color: white;
+  }
+
+  .group-container {
+    margin-bottom: 0.5rem;
+    scroll-margin-top: 0px;
+  }
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    margin-left: 4px;
+  }
+  .group-label {
+    font-family: "Rail";
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 900;
+  }
+  .group-line {
+    width: 12px;
+    height: 1px;
+    background: var(--accent);
+    opacity: 0.3;
+  }
+  .group-items {
+    margin-left: 8px;
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+    padding-left: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .tree-branch {
+    width: 8px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin-right: -4px;
+    flex-shrink: 0;
+  }
+
+  .scroll-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+    overflow-x: hidden;
+    position: relative;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+    will-change: scroll-position;
+  }
+  .list-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .anim-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid transparent;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: "MarklMono", monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .anim-item.active {
+    background: rgba(255, 255, 255, 0.06);
+    color: white;
+    transform: translateX(4px);
+  }
+
+  .indicator {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    margin-right: 12px;
+  }
+  .active .indicator {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .slot-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+  .slot-item.highlighted {
+    background: rgba(255, 77, 77, 0.08);
+    border-color: rgba(255, 77, 77, 0.2);
+  }
+
+  /* MASK ICONS */
+  .icon-mask {
+    width: 18px !important;
+    height: 18px !important;
+    background-color: rgba(255, 255, 255, 0.5);
+    mask: var(--icon) no-repeat center / contain;
+    -webkit-mask: var(--icon) no-repeat center / contain;
+    transition: background-color 0.2s;
+  }
+  .icon-mask.active-red {
+    background-color: #ff4d4d;
+  }
+
+  .eye-btn,
+  .visibility-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+  }
+  .mono-text {
+    font-family: "MarklMono";
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 2px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+  }
+  /* .picker-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .picker-btn.active {
+    background: rgba(0, 255, 150, 0.2);
+    border-color: #00ff96;
+  }
+
+  .picker-btn.active .icon-mask {
+    background-color: #00ff96;
+  }
+
+  .picker-btn.active span {
+    color: #00ff96;
+  } */
+
+  :global(.flash-highlight) {
+    animation: flash-border 1.5s ease-out;
+  }
+
+  @keyframes flash-border {
+    0% {
+      background: rgba(0, 255, 150, 0.3);
+      border-color: #00ff96;
+      transform: scale(1.02);
+    }
+    100% {
+      background: rgba(255, 255, 255, 0.03);
+      border-color: transparent;
+      transform: scale(1);
+    }
+  }
+  .glass-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .section-label {
+    margin: 0;
+    font-family: "Rail", sans-serif;
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .pma-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .pma-pill .status-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+  }
+
+  .pma-pill.active {
+    border-color: rgba(0, 255, 150, 0.4);
+    background: rgba(0, 255, 150, 0.05);
+  }
+
+  .pma-pill.active .status-dot {
+    background: #00ff96;
+    box-shadow: 0 0 6px #00ff96;
+  }
+
+  .pma-pill.active .mono-text {
+    color: #00ff96;
+  }
+
+  .tool-group {
+    display: flex;
+    border-radius: 8px;
+
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.2);
+  }
+
+  .icon-tool-btn {
+    width: 28px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .icon-tool-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+
+  .action-divider {
+    width: 1px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .icon-mask {
+    width: 14px !important;
+    height: 14px !important;
+    background-color: rgba(255, 255, 255, 0.4);
+  }
+  .skin-section {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .tiny-label {
+    font-family: "Rail";
+    font-size: 8px;
+    color: rgba(255, 255, 255, 0.3);
+    margin-bottom: 6px;
+    letter-spacing: 0.1em;
+  }
+
+  .skin-grid {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  }
+
+  .skin-btn {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.5);
+    font-family: "MarklMono";
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .skin-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  .skin-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    box-shadow: 0 0 10px rgba(0, 162, 255, 0.3);
+  }
+
+  /* Custom horizontal scrollbar for the skin grid */
+  .custom-scrollbar-horizontal::-webkit-scrollbar {
+    height: 2px;
+  }
+  .custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+  }
+</style>

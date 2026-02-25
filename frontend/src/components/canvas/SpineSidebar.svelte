@@ -10,7 +10,7 @@
     isSelectSlot,
     selectedSlotName,
     mixerHeight,
-    selectedTrackId,
+
   } from "../../stores/appStore";
 
   import VisibilityOn from "../../assets/images/visibility-on.svg";
@@ -18,6 +18,7 @@
   import VisibilityPreview from "../../assets/images/visibility-preview.svg";
   //   import CenterCamera from "../../assets/images/center-person.svg";
   import CenterCamera from "../../assets/images/origin.svg";
+  import CubismSidebar from "./CubismSidebar.svelte";
 
   import TrackMix from "./TrackMix.svelte";
 
@@ -407,6 +408,7 @@
   $: if ($isSelectSlot) {
     activeTab = "slots";
   }
+
 </script>
 
 <svelte:window on:mousemove={handleMouseMove} on:mouseup={stopResizing} />
@@ -691,6 +693,7 @@
     {/if}
   </div>
 </div>
+
 
 <style>
   .search-container {

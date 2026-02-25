@@ -421,6 +421,9 @@ export function decodeShareCode(code: string): RemoteSource[] {
 }
 
 // Live2D Metadata
+
+export const isLive2D = writable(false);
+
 export interface Live2DMetadata {
   id: string;
   version: string;
@@ -443,12 +446,12 @@ export interface Live2DSessionState {
 }
 
 // Stores
+export const activeSidebarTab = writable<"animations" | "slots">("animations");
 export const live2dLibrary = writable<Live2DMetadata[]>([]);
 export const activeLive2DCharacter = writable<Live2DMetadata | null>(null);
 export const live2dSettings = writable<Record<string, Live2DSessionState>>({});
 export const live2dUpdateSignal = writable(0);
 
-// Helper to keep the UI in sync
 export function triggerLive2DRefresh() {
   live2dUpdateSignal.update((n) => n + 1);
 }
