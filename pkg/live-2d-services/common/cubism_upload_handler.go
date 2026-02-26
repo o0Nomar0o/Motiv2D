@@ -83,9 +83,8 @@ func (s *CubismCommons) ProcessLive2DAsset(modelJsonPath string) *Live2DMetadata
 		}
 	}
 
-	// 1. Map the Moc3 file
 	if m3.FileReferences.Moc == "" {
-		return nil // Invalid model
+		return nil
 	}
 
 	asset := &Live2DMetadata{

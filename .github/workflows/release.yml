@@ -94,9 +94,12 @@ jobs:
           New-Item -ItemType Directory -Force -Path build/bin/wv2runtime-temp
           expand wv2runtime.cab -F:* build/bin/wv2runtime-temp
 
-          Get-ChildItem -Path build/bin/wv2runtime-temp/* -Recurse | ForEach-Object {
-            Copy-Item -Path $_.FullName -Destination build/bin/wv2runtime -Force
-          }
+          # Get-ChildItem -Path build/bin/wv2runtime-temp/* -Recurse | ForEach-Object {
+          #   Copy-Item -Path $_.FullName -Destination build/bin/wv2runtime -Force
+          # }
+
+          $runtimeFolder = Get-ChildItem -Path build/bin/wv2runtime-temp -Directory | Select-Object -First 1
+          Copy-Item -Path $runtimeFolder.FullName -Destination build/bin/wv2runtime -Recurse -Force
 
           Remove-Item -Recurse -Force build/bin/wv2runtime-temp
 

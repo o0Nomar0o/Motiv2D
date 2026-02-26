@@ -177,7 +177,10 @@ export const deleteRemoteSource = async (id: string) => {
   }
 };
 
-export const characterLibrary = writable<SpineMetadata[]>([]);
+export type UnifiedAsset = SpineMetadata | Live2DMetadata;
+export const characterLibrary = writable<UnifiedAsset[]>([]);
+
+// export const characterLibrary = writable<SpineMetadata[]>([]);
 export const activeCharacter = writable<SpineMetadata | null>(null);
 
 export const spineUpdateSignal = writable(0);

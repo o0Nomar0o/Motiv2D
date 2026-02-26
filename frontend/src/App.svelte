@@ -176,6 +176,11 @@
       if (unoffUpdate) unoffUpdate();
     };
   });
+
+  $: activeAssetId = $activeCharacter?.id || $activeLive2DCharacter?.id || "none";
+  
+  // Combine signals into one stable string
+  $: renderKey = `${activeAssetId}-${$spineUpdateSignal}-${$live2dUpdateSignal}`;
 </script>
 
 <div class="window-root {platform}">
@@ -228,8 +233,10 @@
 
     <!-- {#if isSpineMode && $activeCharacter  }
       {#key $activeCharacter.id + $spineUpdateSignal} -->
-    {#if $currentView === "SPINE"}
-      {#key ($activeCharacter?.id || $activeLive2DCharacter?.id) + $spineUpdateSignal + $live2dUpdateSignal}
+    <!-- {#if $currentView === "SPINE" && ( $activeCharacter || $activeLive2DCharacter)}
+      {#key ($activeCharacter?.id || $activeLive2DCharacter?.id) + $spineUpdateSignal + $live2dUpdateSignal} -->
+      {#if $currentView === "SPINE" && ($activeCharacter || $activeLive2DCharacter)}
+        {#key renderKey}
         <div class="animation-panel">
           {#if $isLive2D}
             <CubismSidebar

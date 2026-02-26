@@ -47,11 +47,22 @@ func main() {
 	isFrameless := isWindows && FramelessMode == "true"
 
 	exePath, _ := os.Executable()
-	bundleDir := filepath.Join(filepath.Dir(exePath), "wv2runtime")
+	exeDir := filepath.Dir(exePath)
+	runtimeRoot := filepath.Join(exeDir, "wv2runtime")
 
 	runtimePath := ""
-	if _, err := os.Stat(bundleDir); err == nil {
-		runtimePath = bundleDir
+
+	entries, ent_err := os.ReadDir(runtimeRoot)
+	if ent_err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				candidate := filepath.Join(runtimeRoot, entry.Name(), "msedgewebview2.exe")
+				if _, err := os.Stat(candidate); err == nil {
+					runtimePath = filepath.Join(runtimeRoot, entry.Name())
+					break
+				}
+			}
+		}
 	}
 
 	if runtime.GOOS == "windows" {
@@ -82,7 +93,7 @@ func main() {
 						http.Error(w, "Invalid path encoding", http.StatusBadRequest)
 						return
 					}
-					
+
 					fmt.Printf("WAILS ASSET REQUEST: %s\n", decodedPath)
 					wailsRuntime.EventsEmit(app.ctx, "link:log", map[string]string{
 						"message": "WAILS ASSET REQUEST: " + decodedPath,
