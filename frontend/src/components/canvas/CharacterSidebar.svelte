@@ -4,15 +4,13 @@
     activeCharacter,
     rightPanelClp,
     characterSettings,
-    isImportOpen,
+    live2dSettings,
     activeLive2DCharacter,
     isLive2D,
   } from "../../stores/appStore";
   import { fade } from "svelte/transition";
-
   import iconGlobe from "../../assets/images/globe.svg";
   import iconTrash from "../../assets/images/trash.svg";
-
   import { RemoveAssetCache } from "../../../wailsjs/go/remote/RemoteHandler";
 
   let searchTerm = "";
@@ -21,36 +19,48 @@
     char.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  $: currentActiveId = $activeCharacter?.id || $activeLive2DCharacter?.id;
+
+  const isL2D = (char: any) => !!char.mocFile;
+
   function selectCharacter(char: any) {
-    // activeCharacter.set(char);
-    
-    if (char.isLive2D || char.path?.endsWith('.moc3')) {
+    if (isL2D(char)) {
       isLive2D.set(true);
       activeLive2DCharacter.set(char);
-      activeCharacter.set(null); // Clear spine character
+      activeCharacter.set(null); 
     } else {
       isLive2D.set(false);
       activeCharacter.set(char);
-      activeLive2DCharacter.set(null); // Clear live2d character
+      activeLive2DCharacter.set(null); 
     }
+  }
 
+  function getTypeLabel(char: any) {
+    if (isL2D(char)) return "MOC3";
+    return char.isBinary ? "SKEL" : "JSON";
+  }
+
+  function getStatusColor(char: any) {
+    if (isL2D(char)) return "#00d4ff";
+    
+    if (char.missingPng && char.missingPng.length > 0) return "#ff4d4d";
+    if (!char.hasAtlas || !char.hasSkel) return "#ffbb33";
+    return "#00ff96";
   }
 
   let scrollTimeout: number;
-  $: if ($activeCharacter && !$rightPanelClp) {
+  $: if (currentActiveId && !$rightPanelClp) {
     clearTimeout(scrollTimeout);
+    const targetId = currentActiveId; 
     scrollTimeout = window.setTimeout(() => {
       const container = document.querySelector(".scroll-content");
-      const el = document.querySelector(
-        `[data-char-id="${$activeCharacter.id}"]`
-      ) as HTMLElement;
+      const el = document.querySelector(`[data-char-id="${targetId}"]`) as HTMLElement;
 
       if (el && container) {
         const cTop = container.scrollTop;
         const cBottom = cTop + container.clientHeight;
         const eTop = el.offsetTop - (container as HTMLElement).offsetTop;
         const eBottom = eTop + el.clientHeight;
-
         if (eTop < cTop || eBottom > cBottom) {
           el.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
@@ -61,73 +71,39 @@
   export async function removeCharacter(e: MouseEvent, char: any) {
     e.stopPropagation();
     if (char.isRemote) {
-      try {
-        try {
-          console.log(`Successfully deleted local cache for: ${char.id}`);
-
-          await RemoveAssetCache(char.sourceName, char.id);
-          console.log(`Successfully deleted local cache for: ${char.id}`);
-        } catch (err) {
-          console.error("Failed to delete physical files:", err);
-        }
-        console.log(`Cleaned up cache for ${char.id}`);
-      } catch (err) {
-        console.error("Failed to delete remote cache:", err);
-      }
+      try { await RemoveAssetCache(char.sourceName, char.id); } catch (err) {}
     }
 
-    if ($activeCharacter?.id === char.id) {
+    if (currentActiveId === char.id) {
       activeCharacter.set(null);
-      
+      activeLive2DCharacter.set(null);
       const currentIndex = $characterLibrary.findIndex((c) => c.id === char.id);
       if ($characterLibrary.length > 1) {
         const nextTarget = $characterLibrary[currentIndex + 1] || $characterLibrary[currentIndex - 1];
-        
-        setTimeout(() => {
-           activeCharacter.set(nextTarget);
-        }, 10);
+        setTimeout(() => selectCharacter(nextTarget), 10);
       }
     }
 
     characterLibrary.update((list) => list.filter((c) => c.id !== char.id));
-    characterSettings.update((settings) => {
-      const newSettings = { ...settings };
-      delete newSettings[char.id];
-      return newSettings;
-    });
+    
+    // Clear stores
+    if (isL2D(char)) {
+      live2dSettings.update(s => { delete s[char.id]; return s; });
+    } else {
+      characterSettings.update(s => { delete s[char.id]; return s; });
+    }
   }
 
-  function getStatusColor(char: any) {
-    if (char.missingPng?.length > 0) return "#ff4d4d";
-    if (!char.hasAtlas || !char.hasSkel) return "#ffbb33";
-    return "#00ff96";
-  }
-
-  //   function openRemoteSettings() {
-  //     isImportOpen.set(true);
-  //   }
-
-  //Shortcuts export
   export function nextCharacter() {
     if ($characterLibrary.length === 0) return;
-    const idx = $characterLibrary.findIndex(
-      (c) => c.id === $activeCharacter?.id
-    );
-    activeCharacter.set(
-      $characterLibrary[(idx + 1) % $characterLibrary.length]
-    );
+    const idx = $characterLibrary.findIndex(c => c.id === currentActiveId);
+    selectCharacter($characterLibrary[(idx + 1) % $characterLibrary.length]);
   }
 
   export function previousCharacter() {
     if ($characterLibrary.length === 0) return;
-    const idx = $characterLibrary.findIndex(
-      (c) => c.id === $activeCharacter?.id
-    );
-    activeCharacter.set(
-      $characterLibrary[
-        (idx - 1 + $characterLibrary.length) % $characterLibrary.length
-      ]
-    );
+    const idx = $characterLibrary.findIndex(c => c.id === currentActiveId);
+    selectCharacter($characterLibrary[(idx - 1 + $characterLibrary.length) % $characterLibrary.length]);
   }
 </script>
 
@@ -183,7 +159,7 @@
                   <div class="char-meta">
                     <span class="mono-text">v{char.version}</span>
                     <span class="type-tag" class:remote-blue={char.isRemote}>
-                      {char.isBinary ? "SKEL" : "JSON"}
+                      <!-- {char.isBinary ? "SKEL" : "JSON"} -->
                     </span>
                   </div>
                 </div>
@@ -195,9 +171,9 @@
                   ></div>
                 {/if}
 
-                {#if char.missingPng?.length > 0}
+                <!-- {#if char.missingPng?.length > 0}
                   <div class="error-icon" title="Missing Textures">!</div>
-                {/if}
+                {/if} -->
               </button>
 
               <button

@@ -4,11 +4,12 @@
     remoteSources,
     characterLibrary,
     activeCharacter,
-    live2dLibrary,
     activeLive2DCharacter,
+    isLive2D,
   } from "../../stores/appStore";
   import { fade, fly } from "svelte/transition";
   import { onMount, onDestroy } from "svelte";
+  import { get } from "svelte/store";
 
   // Assets
   import iconGlobe from "../../assets/images/globe.svg";
@@ -22,13 +23,11 @@
   // Wails Binding
   import {
     SelectFolder,
-    RecursiveImport,
     ImportFromDialog,
     ImportFromCache,
   } from "../../../wailsjs/go/common/SpineCommons";
   import {
     CheckSourceHealth,
-    GetCacheFolder,
     GetCachePath,
   } from "../../../wailsjs/go/remote/RemoteHandler";
   import { EventsOn } from "../../../wailsjs/runtime/runtime";
@@ -69,15 +68,65 @@
     checkAllHealth();
   }
 
+  function autoSelectIfEmpty(asset: any, isL2D: boolean) {
+    const currentSpine = get(activeCharacter);
+    const currentL2D = get(activeLive2DCharacter);
+
+    if (!currentSpine && !currentL2D) {
+      if (isL2D) {
+        isLive2D.set(true);
+        activeLive2DCharacter.set(asset);
+      } else {
+        isLive2D.set(false);
+        activeCharacter.set(asset);
+      }
+    }
+  }
+
+  onMount(() => {
+    //Live2D Import Listener
+    const unlistenLive2D = EventsOn("live2d_discovered", (asset) => {
+      const l2dAsset = { ...asset, isLive2D: true };
+      
+      characterLibrary.update((existing) => {
+        if (existing.some((e) => e.id === l2dAsset.id)) return existing;
+        return [...existing, l2dAsset];
+      });
+
+      autoSelectIfEmpty(l2dAsset, true);
+    });
+
+    //Spine Import Listener
+    const unlistenSpine = EventsOn("asset_discovered", (asset) => {
+      const spineAsset = { ...asset, isLive2D: false };
+
+      characterLibrary.update((existing) => {
+        if (existing.some((e) => e.id === spineAsset.id)) return existing;
+        return [...existing, spineAsset];
+      });
+
+      autoSelectIfEmpty(spineAsset, false);
+    });
+
+    return () => {
+      unlistenLive2D();
+      unlistenSpine();
+    };
+  });
+
   async function handleLocalImport() {
     try {
       const results = await SelectFolder();
       if (results && results.length > 0) {
         characterLibrary.update((existing) => {
-          const newItems = results.filter(
-            (r) => !existing.some((e) => e.id === r.id),
-          );
-          if (newItems.length > 0) activeCharacter.set(newItems[0]);
+          // Filter out duplicates and mark as Spine
+          const newItems = results
+            .filter((r) => !existing.some((e) => e.id === r.id))
+            .map(r => ({ ...r, isLive2D: false }));
+          
+          if (newItems.length > 0) {
+            autoSelectIfEmpty(newItems[0], false);
+          }
           return [...existing, ...newItems];
         });
         close();
@@ -88,50 +137,6 @@
   }
 
   let isScanning = false;
-  let unsubscribe: () => void;
-
-  onMount(() => {
-    //L2D
-    const unlistenLive2D = EventsOn("live2d_discovered", (asset) => {
-      live2dLibrary.update((existing) => {
-        if (existing.some((e) => e.id === asset.id)) return existing;
-
-        const newList = [...existing, asset];
-        activeLive2DCharacter.update((current) => current ?? asset);
-        return newList;
-      });
-    });
-
-    //Spine
-    const unlisten = EventsOn("asset_discovered", (asset) => {
-      console.log("Asset found:", asset.id);
-
-      characterLibrary.update((existing) => {
-        if (existing.some((e) => e.id === asset.id)) return existing;
-
-        const newList = [...existing, asset];
-
-        activeCharacter.update((current) => {
-          if (!current) {
-            console.log("Auto-setting active character:", asset.id);
-            return asset;
-          }
-          return current;
-        });
-
-        return newList;
-      });
-    });
-
-    return () => {
-      unlistenLive2D();
-      unlisten();
-    };
-  });
-
-  onDestroy(() => {
-    if (unsubscribe) unsubscribe();
-  });
 
   async function handleRecursiveLocalImport() {
     try {
@@ -152,7 +157,7 @@
       await ImportFromCache(cachePath);
       close();
     } catch (err) {
-      console.error("Recursive scan failed:", err);
+      console.error("Cache import failed:", err);
     } finally {
       isScanning = false;
     }
@@ -164,7 +169,7 @@
       await ImportLive2DFromDialog();
       close();
     } catch (err) {
-      console.error("Live2D scan failed:", err);
+      console.error("Live2D import failed:", err);
     } finally {
       isScanning = false;
     }

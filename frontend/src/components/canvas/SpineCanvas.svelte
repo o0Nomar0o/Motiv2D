@@ -297,7 +297,7 @@
     const settings = $live2dSettings[asset.id] || { camX: 0.5, camY: 0.5, zoom: 1 };
     
     await live2dPlayer.load(asset.modelJsonFile.url, settings as any);
-    
+    live2dPlayer.setupHitTest();
     if (loadId === currentLoadId) {
       live2dUpdateSignal.update(n => n + 1);
     }
