@@ -65,7 +65,6 @@ export class Live2DController {
     const finalUrl = decodeURIComponent(modelUrl);
     this.model = await Live2DModel.from(finalUrl, { autoInteract: false });
 
-    // Texture optimization
     this.model.textures.forEach((t) => {
       const base = t.baseTexture;
       if (!base) return;
@@ -80,7 +79,6 @@ export class Live2DController {
     const internal = this.model.internalModel as any;
     const core = internal.coreModel;
 
-    // 1. Safe Mapping Logic (Fixes the undefined crash)
     const drawableIds = internal.getDrawableIDs() || [];
     const partIds = core?._partIds || [];
     const drawablePartIndices = internal.drawablePartIndices || core?._drawablePartIndices || [];
@@ -88,7 +86,6 @@ export class Live2DController {
     drawableIds.forEach((id: string, index: number) => {
       this.drawableIndexMap.set(id, index);
 
-      // Safe bounds check before array access
       const pIndex = drawablePartIndices[index];
       if (pIndex !== undefined && pIndex !== -1 && partIds[pIndex]) {
         this.drawableToPartMap.set(id, partIds[pIndex]);
@@ -100,7 +97,6 @@ export class Live2DController {
     this.app.stage.addChild(this.model);
     this.model.anchor.set(0.5, 0.5);
 
-    // Load Session Settings
     if (settings) {
       this.cameraManager.x = settings.camX;
       this.cameraManager.y = settings.camY;
@@ -116,21 +112,12 @@ export class Live2DController {
      const internals = this.model.internalModel as any;
     const cores = internals.coreModel;
     
-    // We search every known location for the Part Index array
     const drawablePartIndicess = 
       internals.drawablePartIndices || 
       cores._drawablePartIndices || 
       (cores.getDrawablePartIndices ? cores.getDrawablePartIndices() : null) ||
       cores.drawablePartIndices;
 
-    console.log("🔍 PROBE: drawablePartIndices found?", !!drawablePartIndicess);
-    if (drawablePartIndicess) {
-      console.log("🔍 PROBE: Array length:", drawablePartIndicess.length);
-      console.log("🔍 PROBE: Sample (first 5):", Array.from(drawablePartIndicess).slice(0, 5));
-    }
-
- 
-    
     this.camX = this.cameraManager.x;
     this.camY = this.cameraManager.y;
     this.camZoom = this.cameraManager.zoom;
@@ -142,7 +129,6 @@ export class Live2DController {
   private updateLoop = (delta: number) => {
     if (this.isDestroyed || !this.model) return;
 
-    // 1. Standard Camera Logic
     this.camX += this.cameraManager.x - this.camX;
     this.camY += this.cameraManager.y - this.camY;
     this.camZoom = this.cameraManager.zoom;
@@ -151,7 +137,6 @@ export class Live2DController {
     const internal = this.model.internalModel as any;
     const core = internal.coreModel as any;
 
-    // 2. Parameter Overrides
     Object.entries(this.parameterOverrides).forEach(([id, value]) => {
       if (core.setParameterValueById) {
         core.setParameterValueById(id, value);
@@ -160,7 +145,6 @@ export class Live2DController {
       }
     });
 
-    // 3. Native PIXI Visibility Override
     if (internal.drawables) {
       this.drawableIndexMap.forEach((index, id) => {
         const mesh = internal.drawables[index];
@@ -170,7 +154,6 @@ export class Live2DController {
       });
     }
 
-    // 4. Rainbow Highlighting
     if (this.highlightId) {
       this.highlightHue = (this.highlightHue + 2) % 360;
       const { r, g, b } = this.getRainbowRGB(this.highlightHue);
@@ -182,10 +165,6 @@ export class Live2DController {
     }
   };
 
-  /**
-   * Toggles visibility for an entire Part (folder)
-   * Safely checks indices to prevent crashes
-   */
   public setPartVisibility(partId: string, visible: boolean) {
     if (!this.model) return;
     const internal = this.model.internalModel as any;
@@ -194,10 +173,8 @@ export class Live2DController {
     const pIndex = partIds.indexOf(partId);
 
     if (pIndex !== -1) {
-      // 1. This part definitely works (the folder hides)
       if (core._partOpacities) core._partOpacities[pIndex] = visible ? 1 : 0;
 
-      // 2. Detective fix for Drawables
       const dpi = internal.drawablePartIndices || core._drawablePartIndices || 
                   (core.getDrawablePartIndices ? core.getDrawablePartIndices() : null);
       
