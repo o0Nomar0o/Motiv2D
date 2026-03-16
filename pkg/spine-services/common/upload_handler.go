@@ -33,6 +33,7 @@ func (s *SpineCommons) SelectFolder() ([]SpineMetadata, error) {
 		}
 	}
 
+	// runtime.EventsEmit(s.ctx, "asset_discovered", s.GroupFilesIntoAssets(paths))
 	return s.GroupFilesIntoAssets(paths), nil
 }
 
