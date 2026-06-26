@@ -50,12 +50,7 @@
 - **Layer Filtering**: Find exactly what you need with multiple search terms using the `||` (OR) operator (e.g., `sky || background`).
 - **Bulk Layer Visibility**: Quickly hide or show all filtered results with a single click.
 
-<p align="center">
-  <video src="https://github.com/user-attachments/assets/f641b9bb-4a34-4954-ab76-38a85538f85a" width="800" muted autoplay loop playsinline>
-  </video>
-  <br/>
-  <ins><em>Quickly find what's blocking your view with the Layer Eye-Dropper.</em></ins>
-</p>
+
 
 ### Remote & Storage
 
