@@ -73,8 +73,9 @@ jobs:
             plutil -insert NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || \
             plutil -replace NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || true
           else
-            wails build -platform windows/amd64 -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed -devtools
-            wails build -platform windows/amd64 -o motiv2d-frameless.exe -ldflags "-s -w -X 'main.FramelessMode=true'" -webview2 embed
+            # Use -webview2 download so users missing the runtime get a prompt to install it instead of a blank screen
+            wails build -platform windows/amd64 -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 download -devtools
+            wails build -platform windows/amd64 -o motiv2d-frameless.exe -ldflags "-s -w -X 'main.FramelessMode=true'" -webview2 download
           fi
 
       - name: Package & Generate Hash
