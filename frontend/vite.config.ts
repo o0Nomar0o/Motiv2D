@@ -3,6 +3,6 @@ import { svelte } from '@sveltejs/vite-plugin-svelte'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: './', // <-- Add this line here
+  base: './',
   plugins: [svelte()]
 })
