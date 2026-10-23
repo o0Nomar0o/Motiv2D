@@ -2,6 +2,7 @@ export class CameraManager {
   public zoom: number = 1.0;
   public x: number = 0;
   public y: number = 0;
+  public rotation: number = 0;
   public isDragging: boolean = false;
   private lastMouseX: number = 0;
   private lastMouseY: number = 0;

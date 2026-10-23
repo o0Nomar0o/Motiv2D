@@ -243,6 +243,7 @@
     mask: var(--icon) no-repeat center / contain;
     -webkit-mask: var(--icon) no-repeat center / contain;
   }
+  
   .toggle-container {
     position: relative;
     width: 100%;
@@ -268,7 +269,17 @@
     justify-content: center;
   }
 
-  .toggle-container.act .toggle-circle-main {
+ 
+  /* .st-gl:hover{
+        background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+  
+  .st-gl:hover .icon-mask{
+     background-color: var(--accent);
+  } */
+
+  .toggle-container .toggle-circle-main {
     /* background: rgba(255, 255, 255, 0.04); */
     background: rgba(10, 10, 10, 0.5);
   }
@@ -284,6 +295,7 @@
       0 4px 16px rgba(0, 0, 0, 0.2),
       inset 0 1px 1px rgba(255, 255, 255, 0.05);
   }
+
 
   /* .toggle-circle.center {
     pointer-events: none;

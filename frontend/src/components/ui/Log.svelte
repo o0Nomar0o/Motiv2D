@@ -115,7 +115,8 @@
 <style>
   .log-card {
     --lvl-color: 96, 165, 250;
-    background: rgba(255, 255, 255, 0.02);
+    /* background: rgba(255, 255, 255, 0.02); */
+    background: rgba(26, 26, 26, 0.35);
     border: 1px solid rgba(255, 255, 255, 0.04);
   }
 

@@ -1,14 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import iconPlus from "../../assets/images/plus.svg";
-  import iconGlobe from "../../assets/images/globe.svg";
-  import iconTrash from "../../assets/images/trash.svg";
-  import iconBack from "../../assets/images/chevron-left.svg";
-  import iconEdit from "../../assets/images/edit.svg";
-  import iconCross from "../../assets/images/cross.svg";
-  import iconCheck from "../../assets/images/check.svg";
-  import iconShare from "../../assets/images/share.svg";
-  import iconImport from "../../assets/images/import.svg";
+  import iconPlus from "../../../assets/images/plus.svg";
+  import iconGlobe from "../../../assets/images/globe.svg";
+  import iconTrash from "../../../assets/images/trash.svg";
+  import iconBack from "../../../assets/images/chevron-left.svg";
+  import iconEdit from "../../../assets/images/edit.svg";
+  import iconCross from "../../../assets/images/cross.svg";
+  import iconCheck from "../../../assets/images/check.svg";
+  import iconShare from "../../../assets/images/share.svg";
+  import iconImport from "../../../assets/images/import.svg";
 
   import {
     remoteSources,
@@ -18,7 +18,7 @@
     type RemoteSource,
     generateShareCode,
     decodeShareCode,
-  } from "../../stores/appStore";
+  } from "../../../stores/appStore";
 
   let isCreating = false;
   let editingId: string | null = null;
@@ -1121,7 +1121,7 @@
   .glass-pill {
     display: flex;
     align-items: center;
-    width: 36px; /* Sizing tightened for elegance */
+    width: 155px; /* Sizing tightened for elegance */
     height: 36px;
 
     /* background: rgba(255, 255, 255, 0.05);
@@ -1186,7 +1186,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     white-space: nowrap;
-    opacity: 0;
+    opacity: 0.9;
     transition: opacity 0.3s ease;
   }
 

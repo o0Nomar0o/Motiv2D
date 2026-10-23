@@ -1,8 +1,9 @@
 name: Wails Build
+
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
 
 permissions:
   contents: write
@@ -72,36 +73,9 @@ jobs:
             plutil -insert NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || \
             plutil -replace NSWindowSupportsAutomaticInlineTitle -bool true "$PLIST_PATH" || true
           else
-            # EMBED (Evergreen)
             wails build -platform windows/amd64 -o motiv2d-standard.exe -clean -ldflags "-s -w" -webview2 embed -devtools
             wails build -platform windows/amd64 -o motiv2d-frameless.exe -ldflags "-s -w -X 'main.FramelessMode=true'" -webview2 embed
-            # Copy for bundled versions
-            cp build/bin/motiv2d-standard.exe build/bin/motiv2d-standard-bundled.exe
-            cp build/bin/motiv2d-frameless.exe build/bin/motiv2d-frameless-bundled.exe
           fi
-
-      # MOVED: This now runs AFTER 'wails build' so the -clean flag doesn't delete it
-      - name: Download & Extract Fixed WebView2 Runtime (Windows Only)
-        if: matrix.os == 'windows-latest'
-        shell: powershell
-        run: |
-          $url = "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/8d7d9e58-5939-4512-b0f3-f3b459ffb8f1/Microsoft.WebView2.FixedVersionRuntime.145.0.3800.70.x64.cab"
-          Invoke-WebRequest -Uri $url -OutFile "wv2runtime.cab"
-          
-          New-Item -ItemType Directory -Force -Path build/bin
-          New-Item -ItemType Directory -Force -Path build/bin/wv2runtime
-
-          New-Item -ItemType Directory -Force -Path build/bin/wv2runtime-temp
-          expand wv2runtime.cab -F:* build/bin/wv2runtime-temp
-
-          # Get-ChildItem -Path build/bin/wv2runtime-temp/* -Recurse | ForEach-Object {
-          #   Copy-Item -Path $_.FullName -Destination build/bin/wv2runtime -Force
-          # }
-
-          $runtimeFolder = Get-ChildItem -Path build/bin/wv2runtime-temp -Directory | Select-Object -First 1
-          Copy-Item -Path $runtimeFolder.FullName -Destination build/bin/wv2runtime -Recurse -Force
-
-          Remove-Item -Recurse -Force build/bin/wv2runtime-temp
 
       - name: Package & Generate Hash
         id: package
@@ -113,13 +87,8 @@ jobs:
             codesign --force --deep --sign - motiv2d.app
             zip -r ../../motiv2d-${{ matrix.artifact }}.zip motiv2d.app
           else
-            # Embed (Evergreen)
             powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-standard.exe' -DestinationPath './motiv2d-windows-standard.zip' -Force"
             powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless.exe' -DestinationPath './motiv2d-windows-frameless.zip' -Force"
-            
-            # Bundled Fixed Runtime (WebGL-safe)
-            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-standard-bundled.exe','build/bin/wv2runtime' -DestinationPath './motiv2d-windows-standard-bundled.zip' -Force"
-            powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless-bundled.exe','build/bin/wv2runtime' -DestinationPath './motiv2d-windows-frameless-bundled.zip' -Force"
           fi
 
       - name: Upload to Release
@@ -127,6 +96,7 @@ jobs:
         with:
           files: |
             *.zip
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -146,8 +116,6 @@ jobs:
           
           WIN_STD_EMBED_HASH=$(shasum -a 256 motiv2d-windows-standard.zip | awk '{print $1}')
           WIN_FRM_EMBED_HASH=$(shasum -a 256 motiv2d-windows-frameless.zip | awk '{print $1}')
-          WIN_STD_BUNDLED_HASH=$(shasum -a 256 motiv2d-windows-standard-bundled.zip | awk '{print $1}')
-          WIN_FRM_BUNDLED_HASH=$(shasum -a 256 motiv2d-windows-frameless-bundled.zip | awk '{print $1}')
           MAC_ARM_HASH=$(shasum -a 256 motiv2d-macos-arm64.zip | awk '{print $1}')
           MAC_INTEL_HASH=$(shasum -a 256 motiv2d-macos-intel.zip | awk '{print $1}')
 
@@ -162,14 +130,6 @@ jobs:
               "windows_frameless_amd64_embed": {
                 "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-windows-frameless.zip",
                 "checksum": "$WIN_FRM_EMBED_HASH"
-              },
-              "windows_standard_amd64_bundled": {
-                "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-windows-standard-bundled.zip",
-                "checksum": "$WIN_STD_BUNDLED_HASH"
-              },
-              "windows_frameless_amd64_bundled": {
-                "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-windows-frameless-bundled.zip",
-                "checksum": "$WIN_FRM_BUNDLED_HASH"
               },
               "darwin_arm64": {
                 "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/$VERSION/motiv2d-macos-arm64.zip",

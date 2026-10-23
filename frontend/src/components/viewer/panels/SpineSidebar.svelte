@@ -10,25 +10,37 @@
     isSelectSlot,
     selectedSlotName,
     mixerHeight,
+    focusedTrackId,
+  } from "../../../stores/appStore";
 
-  } from "../../stores/appStore";
-
-  import VisibilityOn from "../../assets/images/visibility-on.svg";
-  import VisibilityOff from "../../assets/images/visibility-off.svg";
-  import VisibilityPreview from "../../assets/images/visibility-preview.svg";
+  import VisibilityOn from "../../../assets/images/visibility-on.svg";
+  import VisibilityOff from "../../../assets/images/visibility-off.svg";
+  import VisibilityPreview from "../../../assets/images/visibility-preview.svg";
   //   import CenterCamera from "../../assets/images/center-person.svg";
-  import CenterCamera from "../../assets/images/origin.svg";
-  import CubismSidebar from "./CubismSidebar.svelte";
+  import CenterCamera from "../../../assets/images/origin.svg";
 
-  import TrackMix from "./TrackMix.svelte";
+  import TrackMix from "../../ui/TrackMix.svelte";
 
-  let focusedTrackId = 0;
+  // let focusedTrackId = 0;
   // let mixerHeight = 300;
   // $: selectedTrackId.set(focusedTrackId);
-  
+
+  export let player: any;
+  export let characterMetadata: any;
+
+  let animations: string[] = [];
+  let slots: any[] = [];
+  let skins: string[] = [];
+  let activeTab: "animations" | "slots" = "animations";
+  let highlightedSlot: string | null = null;
+  let currentAnimName: string = "";
+  let groupedSlots: { [key: string]: any[] } = {};
+  let scrollContainer: HTMLElement;
+  let isResizing = false;
+
   function playAnimation(name: string) {
     if (!player) return;
-    const trackId = focusedTrackId;
+    const trackId = $focusedTrackId;
 
     player.playAnimation(trackId, name, true);
 
@@ -46,7 +58,6 @@
     }));
   }
 
-  let isResizing = false;
   function startResizing() {
     isResizing = true;
   }
@@ -57,18 +68,6 @@
   function stopResizing() {
     isResizing = false;
   }
-
-  export let player: any;
-  export let characterMetadata: any;
-
-  let animations: string[] = [];
-  let slots: any[] = [];
-  let skins: string[] = [];
-  let activeTab: "animations" | "slots" = "animations";
-  let highlightedSlot: string | null = null;
-  let currentAnimName: string = "";
-  let groupedSlots: { [key: string]: any[] } = {};
-  let scrollContainer: HTMLElement;
 
   $: if ($spineUpdateSignal || player || $activeCharacter?.id) {
     if (player?.skeleton) refreshData();
@@ -147,7 +146,7 @@
 
   export function toggleHighlightedSlotVisibility() {
     if (!highlightedSlot) return;
-    const slot = slots.find(s => s.name === highlightedSlot);
+    const slot = slots.find((s) => s.name === highlightedSlot);
     if (slot) {
       handleVisibilityChange(slot.name, !slot.visible);
     }
@@ -408,7 +407,6 @@
   $: if ($isSelectSlot) {
     activeTab = "slots";
   }
-
 </script>
 
 <svelte:window on:mousemove={handleMouseMove} on:mouseup={stopResizing} />
@@ -476,14 +474,14 @@
       class:active={activeTab === "animations"}
       on:click={() => (activeTab = "animations")}
     >
-      <span>Animations</span>
+      <span class="segment-label">Animations</span>
     </button>
     <button
       class="segment-btn"
       class:active={activeTab === "slots"}
       on:click={() => (activeTab = "slots")}
     >
-      <span>Slots</span>
+      <span class="segment-label">Slots</span>
     </button>
   </div>
 
@@ -688,12 +686,11 @@
       ></div>
 
       <div class="mixer-section" style="height: {$mixerHeight}px">
-        <TrackMix {player} bind:focusedTrackId />
+        <TrackMix {player} />
       </div>
     {/if}
   </div>
 </div>
-
 
 <style>
   .search-container {
@@ -1001,7 +998,6 @@
     margin-bottom: 0.75rem;
   }
 
- 
   .config-wrap {
     margin-bottom: 1.5rem;
     flex-shrink: 0;
@@ -1045,6 +1041,9 @@
     /* border-width: 1px 0 1px 0;
     border-style: solid;
     border-color: rgba(255, 255, 255, 0.1); */
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   }
 
   .thumb-container {
@@ -1084,9 +1083,14 @@
     font-weight: 700;
     font-family: "Rail";
   }
+
   .segment-btn.active span {
     color: white;
   }
+
+  .segment-btn:not(.active):hover .segment-label {
+  color: var(--accent);
+}
 
   .group-container {
     margin-bottom: 0.5rem;
@@ -1348,7 +1352,6 @@
   .icon-tool-btn:hover {
     background: rgba(255, 255, 255, 0.05);
   }
-
 
   .action-divider {
     width: 1px;

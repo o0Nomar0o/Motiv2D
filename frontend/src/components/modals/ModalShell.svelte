@@ -101,6 +101,19 @@
     position: relative;
   }
 
+  .modal-body.windows {
+    -webkit-mask-image: radial-gradient(
+      circle 20px at calc(100% - 14px) 14px,
+      transparent 100%,
+      black 100%
+    );
+
+    mask-image: radial-gradient(
+      circle 20px at calc(100% - 14px) 14px,
+      transparent 100%,
+      black 100%
+    );
+  }
   .brand {
     font-family: "Rail";
     font-size: 24px;

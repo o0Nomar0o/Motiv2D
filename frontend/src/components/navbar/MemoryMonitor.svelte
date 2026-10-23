@@ -1,21 +1,23 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { GetMemoryStats } from '../../../wailsjs/go/monitors/RunAnalyze'; 
-  import { monitors, services } from '../../../wailsjs/go/models';
+  import { onMount } from "svelte";
+  import { GetMemoryStats } from "../../../wailsjs/go/monitors/RunAnalyze";
+  import { monitors, services } from "../../../wailsjs/go/models";
 
-  let stats: monitors.MemoryStats = { 
-    alloc: 0, 
-    mainRss: 0,     
-    childrenRss: 0, 
-    total: 0, 
-    workerCount: 0 
-};
+  let stats: monitors.MemoryStats = {
+    alloc: 0,
+    mainRss: 0,
+    childrenRss: 0,
+    total: 0,
+    workerCount: 0,
+  };
 
-  let jsDisplay: string | number = '...';
+  let jsDisplay: string | number = "...";
+
+  // let stat_font_size = 12;
+  $: stat_font_size = stats.mainRss >= 100 ? 9 : 12;
 
   async function updateStats() {
     try {
-
       const res = await GetMemoryStats();
       if (res) stats = res;
 
@@ -24,18 +26,13 @@
       if (perf.measureUserAgentSpecificMemory) {
         const mem = await perf.measureUserAgentSpecificMemory();
         jsDisplay = Math.round(mem.bytes / 1024 / 1024);
-      } 
-
-      else if (perf.memory) {
+      } else if (perf.memory) {
         jsDisplay = Math.round(perf.memory.usedJSHeapSize / 1024 / 1024);
-      } 
-
-      else {
-        jsDisplay = '—'; 
+      } else {
+        jsDisplay = "—";
       }
-
     } catch (err) {
-      jsDisplay = '—';
+      jsDisplay = "—";
     }
   }
 
@@ -49,7 +46,9 @@
 <div class="glass-pill">
   <div class="stat">
     <span class="label">APP</span>
-    <span class="value">{stats.mainRss}</span>
+    <span class="value" style="font-size: {stat_font_size}px;"
+      >{stats.mainRss}</span
+    >
     <span class="unit">MB</span>
   </div>
 
@@ -76,17 +75,17 @@
     align-items: center;
     gap: 14px;
     padding: 6px 18px;
-    
-      background: rgba(10, 10, 10, 0.5);
+
+    background: rgba(10, 10, 10, 0.5);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border-radius: 100px;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    
-    box-shadow: 
+
+    box-shadow:
       0 4px 16px rgba(0, 0, 0, 0.2),
       inset 0 1px 1px rgba(255, 255, 255, 0.05);
-    
+
     user-select: none;
     pointer-events: auto;
   }
@@ -111,11 +110,11 @@
   }
 
   .value {
-    font-family: ui-monospace, 'JetBrains Mono', 'SF Mono', monospace;
+    font-family: ui-monospace, "JetBrains Mono", "SF Mono", monospace;
     font-size: 12px;
     font-weight: 700;
     color: #ffffff;
-    font-variant-numeric: tabular-nums; 
+    font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
   }
 
@@ -131,9 +130,9 @@
     background: rgba(255, 255, 255, 0.08);
   }
 
-  .glass-pill:hover {
+  /* .glass-pill:hover {
     background: rgba(255, 255, 255, 0.04);
     border-color: rgba(255, 255, 255, 0.12);
     transform: translateY(-0.5px);
-  }
+  } */
 </style>

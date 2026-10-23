@@ -1,4 +1,4 @@
-import { get, writable } from "svelte/store";
+import {derived, get, writable } from "svelte/store";
 import { remote, services } from "../../wailsjs/go/models";
 import {
   LoadConfig,
@@ -30,6 +30,7 @@ export const leftPanelClp = writable(false);
 export const rightPanelClp = writable(false);
 export const bottomPanelClp = writable(false);
 export const visibilityToggleSignal = writable(0);
+export const focusedTrackId = writable(0);
 
 export const currentView = writable<"DASHBOARD" | "SPINE">("DASHBOARD");
 export const blurType = writable<"frosted" | "gaussian" | "pixel" | "none">(
@@ -41,6 +42,7 @@ export const backgroundOpacity = writable(100);
 
 export const mixerHeight = writable(300);
 export const logHeight = writable(300);
+export const importAssetServerHeight = writable(300);
 
 export const setView = (view: "DASHBOARD" | "SPINE") => {
   currentView.set(view);
@@ -242,6 +244,8 @@ export interface CharacterSessionState {
   camX: number;
   camY: number;
   zoom: number;
+  camera_rotation: number;
+  model_rotation: number;
   currentAnimation: string;
   currentSkin: string;
   slotVisibility: Record<string, boolean>;
@@ -261,6 +265,8 @@ export function getSettingsFor(
     camX: 0,
     camY: 0,
     zoom: 1,
+    camera_rotation: 0,
+    model_rotation: 0,
     currentAnimation: "",
     currentSkin: "default",
     slotVisibility: {},
@@ -273,6 +279,8 @@ export function getSettingsFor(
     return {
       ...defaults,
       ...existing,
+      camera_rotation: existing.camera_rotation ?? defaults.camera_rotation,
+      model_rotation: existing.model_rotation ?? defaults.model_rotation,
       slotVisibility: existing.slotVisibility || defaults.slotVisibility,
       tracks: existing.tracks || defaults.tracks,
       mixerTracks: existing.mixerTracks || defaults.mixerTracks,
@@ -281,6 +289,21 @@ export function getSettingsFor(
 
   characterSettings.update((s) => ({ ...s, [id]: defaults }));
   return defaults;
+}
+
+export function updateCharacterRotation(id: string, rotation: number, type: "canvas" | "model" = "canvas") {
+  characterSettings.update((all) => {
+    const current = all[id];
+    if (!current) return all;
+
+    return {
+      ...all,
+      [id]: {
+        ...current,
+        [type === "model" ? "model_rotation" : "camera_rotation"]: rotation,
+      },
+    };
+  });
 }
 
 export interface LogEntry {
@@ -449,7 +472,7 @@ export interface Live2DSessionState {
 }
 
 // Stores
-export const activeSidebarTab = writable<"animations" | "slots">("animations");
+export const activeSidebarTab = writable<"animations" | "slots" | "parameters">("animations");
 export const live2dLibrary = writable<Live2DMetadata[]>([]);
 export const activeLive2DCharacter = writable<Live2DMetadata | null>(null);
 export const live2dSettings = writable<Record<string, Live2DSessionState>>({});
@@ -483,3 +506,15 @@ export function getLive2DSettingsFor(
   live2dSettings.update((s) => ({ ...s, [id]: defaults }));
   return defaults;
 }
+
+export const activeAssetId = derived(
+  [activeCharacter, activeLive2DCharacter],
+  ([$activeCharacter, $activeLive2DCharacter]) =>
+    $activeCharacter?.id ?? $activeLive2DCharacter?.id ?? "none",
+);
+
+export const renderKey = derived(
+  [activeAssetId, spineUpdateSignal, live2dUpdateSignal],
+  ([$activeAssetId, $spineUpdateSignal, $live2dUpdateSignal]) =>
+    `${$activeAssetId}-${$spineUpdateSignal}-${$live2dUpdateSignal}`,
+);

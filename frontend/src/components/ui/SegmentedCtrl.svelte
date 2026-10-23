@@ -4,9 +4,11 @@
 
   export let options: { id: string; label: string }[] = [];
   export let activeId: string = "";
-  export let width: string = "fit-content"; 
+  export let width: string = "fit-content";
 
-  $: activeIndex = options.findIndex((opt) => opt.id === opt.id && opt.id === activeId);
+  $: activeIndex = options.findIndex(
+    (opt) => opt.id === opt.id && opt.id === activeId,
+  );
   // Thumb width is always 1/N of the container
   $: thumbWidth = options.length > 0 ? 100 / options.length : 0;
 
@@ -16,7 +18,11 @@
   };
 </script>
 
-<div class="segmented-control liquid-glass" style:width style="--cols: {options.length}">
+<div
+  class="segmented-control liquid-glass"
+  style:width
+  style="--cols: {options.length}"
+>
   <div class="thumb-track">
     <div
       class="slider-thumb"
@@ -43,13 +49,11 @@
 
     position: relative;
     display: grid;
-    /* FORCE equal columns so the slider math is always 100% accurate */
-    grid-template-columns: repeat(var(--cols), 1fr); 
+    grid-template-columns: repeat(var(--cols), 1fr);
     align-items: center;
     height: var(--ctrl-height);
     padding: var(--inner-padding);
     background: rgba(255, 255, 255, 0.03);
-    
     backdrop-filter: blur(16px) saturate(180%);
     -webkit-backdrop-filter: blur(16px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -69,10 +73,10 @@
     height: 100%;
     background: var(--accent);
     border-radius: 16px;
-    box-shadow: 
+    box-shadow:
       0 4px 12px rgba(0, 0, 0, 0.2),
       inset 0 1px 1px rgba(255, 255, 255, 0.2);
-    
+
     /* Liquid animation */
     transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     will-change: transform;
@@ -108,6 +112,7 @@
   }
 
   .segment-btn:hover:not(.active) .label-text {
-    color: rgba(255, 255, 255, 0.8);
+    /* color: rgba(255, 255, 255, 0.8); */
+    color: var(--accent);
   }
 </style>

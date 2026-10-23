@@ -2,7 +2,7 @@ import { EventsEmit } from "../../wailsjs/runtime/runtime";
 
 export async function loadSpineRuntime(version: string) {
   
-  const supportedPrefixes = ["3.8", "4.0", "4.1"];
+  const supportedPrefixes = ["3.8", "4.0", "4.1", "4.2"];
   const isSupported = supportedPrefixes.some((p) => version.startsWith(p));
 
   if (!isSupported) {
@@ -41,6 +41,7 @@ export async function loadSpineRuntime(version: string) {
       const spine = await import("@esotericsoftware/spine-webgl-4.2");
       return spine;
     }
+    
   } catch (err) {
     console.error("Failed to load Spine runtime:", err);
     return null;

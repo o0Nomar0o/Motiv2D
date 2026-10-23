@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { Platform, SetWindowColor } from "../../../wailsjs/go/main/App";
+
   import {
     isSettingsOpen,
     configStore,
@@ -17,15 +18,22 @@
   import remoteAccess from "../../assets/images/globe.svg";
   import iconRecord from "../../assets/images/disc-3.svg";
   import iconViewport from "../../assets/images/viewport.svg";
-
   import iconControl from "../../assets/images/control.svg";
   import iconCommand from "../../assets/images/command.svg";
   import iconOption from "../../assets/images/option.svg";
-  import RemoteSetting from "./RemoteSettings.svelte";
-  import ColorPicker from "./ColorPicker.svelte";
-  import BlurControl from "./BlurSetting.svelte";
+  import cross from "../../assets/images/cross.svg";
+
+  import RemoteSetting from "./ui/RemoteSettings.svelte";
+  import ColorPicker from "./ui/ColorPicker.svelte";
+  import BlurControl from "./ui/BlurSetting.svelte";
 
   export let isOpen = false;
+
+  let platform: "darwin" | "windows" | "linux" = "windows";
+  Platform().then((p) => {
+    platform = p as any;
+  });
+
   let activeTab = "controls";
   let currentOS = "windows";
 
@@ -115,7 +123,24 @@
 {#if isOpen}
   <!-- svelte-ignore a11y-click-events-have-key-events -->
   <div class="modal-overlay" on:click={() => isSettingsOpen.set(false)}>
-    <div class="modal-shell st-gl" on:click|stopPropagation>
+    <div
+      class="modal-shell st-gl"
+      class:macos={platform === "darwin"}
+      on:click|stopPropagation
+    >
+      <button
+        class="close-btn"
+        type="button"
+        aria-label="Close settings"
+        title="Close settings"
+        on:click={() => isSettingsOpen.set(false)}
+      >
+        <span
+          class="icon-mask close-icon"
+          style="--icon: url({cross})"
+          aria-hidden="true"
+        ></span>
+      </button>
       <aside class="modal-sidebar">
         <div class="brand">SETTINGS</div>
         <div class="nav-group">
@@ -129,12 +154,12 @@
           >
           <button
             class:active={activeTab === "remote"}
-            on:click={() => (activeTab = "remote")}>Remote</button
+            on:click={() => (activeTab = "remote")}>Configure Sources</button
           >
         </div>
       </aside>
 
-      <main class="modal-body">
+      <main class="modal-body" class:windows={platform === "windows"}>
         {#if activeTab === "viewport"}
           <header class="tab-header">
             <div class="title-row">
@@ -293,17 +318,24 @@
     overflow: hidden;
   }
   .modal-shell {
+    position: relative;
+
     width: 900px;
     height: 530px;
     display: flex;
     border-radius: 40px;
     padding: 10px;
+
+    /* -webkit-mask-image: radial-gradient(circle 22px at calc(100% - 22px) 22px, transparent 99%, black 100%); */
+    /* mask-image: radial-gradient(circle 18px at calc(100% - 22px) 22px, transparent 100%, black 85%); */
   }
+
   .modal-sidebar {
     width: 220px;
     display: flex;
     flex-direction: column;
     padding: 30px 15px;
+    padding-left: 0px !important;
     gap: 16px;
   }
   .modal-body {
@@ -315,6 +347,32 @@
     flex-direction: column;
     color: #eee;
     overflow: hidden;
+
+    /* -webkit-mask-image: radial-gradient(
+      circle 20px at calc(100% - 14px) 14px,
+      transparent 100%,
+      black 100%
+    );
+
+    mask-image: radial-gradient(
+      circle 20px at calc(100% - 14px) 14px,
+      transparent 100%,
+      black 100%
+    ); */
+  }
+
+  .modal-body.windows {
+    -webkit-mask-image: radial-gradient(
+      circle 20px at calc(100% - 14px) 14px,
+      transparent 100%,
+      black 100%
+    );
+
+    mask-image: radial-gradient(
+      circle 20px at calc(100% - 14px) 14px,
+      transparent 100%,
+      black 100%
+    );
   }
 
   .brand {
@@ -617,5 +675,91 @@
     box-shadow:
       inset 0 2px 2px rgba(255, 255, 255, 1),
       inset 0 -3px 6px rgba(0, 0, 0, 0.15);
+  }
+
+  .modal-shell.macos .close-btn {
+    left: 6px;
+    right: auto;
+    background: rgba(35, 35, 35, 0);
+  }
+
+  /* Close button - Elegant & Professional */
+  .close-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 10;
+
+    display: grid;
+    place-items: center;
+
+    width: 32px;
+    height: 32px;
+    padding: 0;
+
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+
+    background: #1f1f1f;
+    color: rgba(255, 255, 255, 0.5);
+
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    transition:
+      background 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      color 200ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .close-icon {
+    display: block;
+    flex: none;
+
+    width: 14px;
+    height: 14px;
+
+    background-color: currentColor;
+    transform: rotate(0deg);
+    transform-origin: center;
+
+    transition: transform 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .close-btn:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+    transform: translateY(-1px) scale(1.04);
+  }
+
+  .close-btn:hover .close-icon {
+    transform: rotate(90deg);
+  }
+  .close-btn:active {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(0) scale(0.96);
+    transition-duration: 100ms;
+  }
+
+  .close-btn:active .close-icon {
+    transform: rotate(90deg) scale(0.95);
+    transition-duration: 100ms;
+  }
+
+  .close-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .close-btn,
+    .close-icon {
+      transition: none;
+    }
   }
 </style>

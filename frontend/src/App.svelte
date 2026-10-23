@@ -2,20 +2,25 @@
   //Components Import
   import TestData from "./components/AlphaBuild/TestData.svelte";
   import Extractor from "./components/extraction/Dashboard.svelte";
-  import Viewer from "./components/navbar/SpineMenu.svelte";
-  import SenPanel from "./components/navbar/SecondaryPanel.svelte";
+  import MenuTools from "./components/navbar/Menu.svelte";
+  import ToolPanel from "./components/navbar/ViewerToolbar.svelte";
   import Sidebar from "./components/extraction/Sidebar.svelte";
-  import SpineCanvas from "./components/canvas/SpineCanvas.svelte";
-  import SpineSidebar from "./components/canvas/SpineSidebar.svelte";
-  import CharacterSidebar from "./components/canvas/CharacterSidebar.svelte";
-  import BottomPanel from "./components/navbar/BottomPanel.svelte";
+  import SpineCanvas from "./components/viewer/Canvas.svelte";
+  import SpineSidebar from "./components/viewer/panels/SpineSidebar.svelte";
+  import CharacterSidebar from "./components/viewer/panels/CharacterSidebar.svelte";
+  import CubismSidebar from "./components/viewer/panels/CubismSidebar.svelte";
+  import BottomPanel from "./components/viewer/panels/BottomPanel.svelte";
   import SettingsModal from "./components/modals/SettingsModal.svelte";
   import ImportModal from "./components/modals/ImportModal.svelte";
   import About from "./components/modals/About.svelte";
   import WinControls from "./components/navbar/WinControls.svelte";
   import Landing from "./components/AlphaBuild/Landing.svelte";
-  import RemoteSettings from "./components/modals/RemoteSettings.svelte";
   import UpdateModal from "./components/modals/UpdaterModal.svelte";
+  import ImportGuideCard from "./components/modals/ui/ImportCardGuide.svelte";
+  import { EventsOn } from "../wailsjs/runtime/runtime";
+  import { Platform } from "../wailsjs/go/main/App";
+  import { onMount, onDestroy } from "svelte";
+  import { CheckForUpdates } from "../wailsjs/go/update/UpdaterService";
 
   //Store Import
   import {
@@ -35,14 +40,8 @@
     activeLive2DCharacter,
     live2dUpdateSignal,
     isLive2D,
+    renderKey,
   } from "./stores/appStore";
-
-  //Wails & Svelte Import
-  import { EventsOn } from "../wailsjs/runtime/runtime";
-  import { Platform } from "../wailsjs/go/main/App";
-  import { onMount, onDestroy } from "svelte";
-  import { CheckForUpdates } from "../wailsjs/go/update/UpdaterService";
-  import CubismSidebar from "./components/canvas/CubismSidebar.svelte";
 
   let platform: "darwin" | "windows" | "linux" = "windows";
 
@@ -58,8 +57,8 @@
   let currentMainView = false;
   let currentSubView = "dashboard";
   let canvasComponent: SpineCanvas;
-  let viewerRef: Viewer;
-  let rightSidebarRef: SenPanel;
+  let viewerRef: MenuTools;
+  let rightSidebarRef: ToolPanel;
   let animSidebarRef: SpineSidebar;
   let cubismSidebarRef: CubismSidebar;
   let charSidebarRef: CharacterSidebar;
@@ -177,10 +176,10 @@
     };
   });
 
-  $: activeAssetId = $activeCharacter?.id || $activeLive2DCharacter?.id || "none";
-  
-  // Combine signals into one stable string
-  $: renderKey = `${activeAssetId}-${$spineUpdateSignal}-${$live2dUpdateSignal}`;
+  // $: activeAssetId = $activeCharacter?.id || $activeLive2DCharacter?.id || "none";
+
+  // // Combine signals into one stable string
+  // $: renderKey = `${activeAssetId}-${$spineUpdateSignal}-${$live2dUpdateSignal}`;
 </script>
 
 <div class="window-root {platform}">
@@ -189,12 +188,18 @@
   {/if}
   <div class="global-drag-handle">
     <div class="left-group">
-      {#if platform !== "darwin"}
-        <WinControls />
-      {/if}
-      <Viewer bind:active={currentMainView} bind:this={viewerRef} />
+      <MenuTools bind:active={currentMainView} bind:this={viewerRef} />
     </div>
-    <SenPanel bind:this={rightSidebarRef} />
+
+    {#if platform !== "darwin"}
+      <div class="right-group">
+        <ToolPanel bind:this={rightSidebarRef} />
+
+        <WinControls />
+      </div>
+    {:else}
+      <ToolPanel bind:this={rightSidebarRef} />
+    {/if}
   </div>
 
   <div class="app-layout">
@@ -235,8 +240,8 @@
       {#key $activeCharacter.id + $spineUpdateSignal} -->
     <!-- {#if $currentView === "SPINE" && ( $activeCharacter || $activeLive2DCharacter)}
       {#key ($activeCharacter?.id || $activeLive2DCharacter?.id) + $spineUpdateSignal + $live2dUpdateSignal} -->
-      {#if $currentView === "SPINE" && ($activeCharacter || $activeLive2DCharacter)}
-        {#key renderKey}
+    {#if $currentView === "SPINE" && ($activeCharacter || $activeLive2DCharacter)}
+      {#key $renderKey}
         <div class="animation-panel">
           {#if $isLive2D}
             <CubismSidebar
@@ -261,12 +266,15 @@
         style:right={rightMargin}
         style:width={$bottomPanelClp ? "48px" : "unset"}
       >
-        <BottomPanel />
+        <BottomPanel {canvasComponent} />
       </div>
     {/if}
   </div>
-  <SettingsModal bind:isOpen={$isSettingsOpen} />
-  <ImportModal bind:isOpen={$isImportOpen} />
+  {#if $currentView === "SPINE" && !($activeCharacter || $activeLive2DCharacter)}
+    <div class="empty-guide-overlay">
+      <ImportGuideCard />
+    </div>
+  {/if}
   {#if showAbout}
     <About on:close={handleCloseAbout} />
   {/if}
@@ -277,6 +285,8 @@
       on:close={handleCloseUpdate}
     />
   {/if}
+  <SettingsModal bind:isOpen={$isSettingsOpen} />
+  <ImportModal bind:isOpen={$isImportOpen} />
 </div>
 
 <style>
@@ -366,7 +376,38 @@
     display: flex;
     align-items: center;
     width: 17px;
+    gap: 25px;
   }
+  .right-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    margin-right: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding-right: 114px;
+  }
+  :global(.right-group .toggle-container) {
+    flex-shrink: 0 !important;
+    right: 185px;
+  }
+
+  :global(.right-group > *) {
+    flex-shrink: 0;
+    --wails-draggable: no-drag;
+  }
+
+  /* .left-group,
+  .right-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: auto;
+    min-width: 0;
+    flex-shrink: 0;
+    position: relative;
+  } */
 
   :global(.darwin) .left-group {
     padding-left: 72px;
@@ -490,5 +531,21 @@
     border-top: 1px solid rgba(255, 255, 255, 0.2);
 
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  }
+
+  .empty-guide-overlay {
+    position: absolute;
+    top: -55px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    pointer-events: none;
+  }
+  :global(.empty-guide-overlay > *) {
+    pointer-events: auto;
   }
 </style>

@@ -7,11 +7,12 @@
     live2dSettings,
     activeLive2DCharacter,
     isLive2D,
-  } from "../../stores/appStore";
+    focusedTrackId
+  } from "../../../stores/appStore";
   import { fade } from "svelte/transition";
-  import iconGlobe from "../../assets/images/globe.svg";
-  import iconTrash from "../../assets/images/trash.svg";
-  import { RemoveAssetCache } from "../../../wailsjs/go/remote/RemoteHandler";
+  import iconGlobe from "../../../assets/images/globe.svg";
+  import iconTrash from "../../../assets/images/trash.svg";
+  import { RemoveAssetCache } from "../../../../wailsjs/go/remote/RemoteHandler";
 
   let searchTerm = "";
 
@@ -98,12 +99,14 @@
     if ($characterLibrary.length === 0) return;
     const idx = $characterLibrary.findIndex(c => c.id === currentActiveId);
     selectCharacter($characterLibrary[(idx + 1) % $characterLibrary.length]);
+    focusedTrackId.set(0)
   }
 
   export function previousCharacter() {
     if ($characterLibrary.length === 0) return;
     const idx = $characterLibrary.findIndex(c => c.id === currentActiveId);
     selectCharacter($characterLibrary[(idx - 1 + $characterLibrary.length) % $characterLibrary.length]);
+    focusedTrackId.set(0)
   }
 </script>
 

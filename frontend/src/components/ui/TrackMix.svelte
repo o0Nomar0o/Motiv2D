@@ -1,14 +1,19 @@
 <script lang="ts">
   import { slide } from "svelte/transition";
   import { onMount, onDestroy } from "svelte";
-  import { characterSettings, activeCharacter, selectedTrackId } from "../../stores/appStore";
+  import {
+    characterSettings,
+    activeCharacter,
+    selectedTrackId,
+    focusedTrackId,
+  } from "../../stores/appStore";
   import ChevronDown from "../../assets/images/chevron-down.svg";
   import ChevronLeft from "../../assets/images/chevron-left.svg";
   import PlayIcon from "../../assets/images/play.svg";
   import PauseIcon from "../../assets/images/pause.svg";
 
   export let player: any;
-  export let focusedTrackId: number = 0;
+  // export let focusedTrackId: number = 0;
 
   let isDraggingId: number | null = null;
 
@@ -28,7 +33,12 @@
 
   function initTracks() {
     if (player && player._mixerState) {
-      tracks = player._mixerState;
+      tracks = player._mixerState.map((t: Track) => ({
+        ...t,
+        expanded: false,
+      }));
+
+      player._mixerState = tracks;
     } else {
       tracks = [
         {
@@ -90,58 +100,109 @@
   //   }
   // }
 
+  // function syncWithSpine() {
+  //   if (!player?.state || !player._mixerState) return;
+
+  //   let changed = false;
+
+  //   // 1. Get the latest source of truth from the player object
+  //   const sourceTracks = player._mixerState as Track[];
+
+  //   const newTracks = sourceTracks.map((sourceT, index) => {
+  //     // Get the existing local track state if it exists
+  //     const t = tracks[index] || sourceT;
+
+  //     const entry = player.state.getCurrent(t.id);
+  //     const currentName = entry?.animation?.name || "Empty";
+
+  //     let currentProgress = 0;
+  //     if (entry && entry.animation) {
+  //       const duration = entry.animation.duration;
+  //       currentProgress =
+  //         duration > 0 ? (entry.trackTime % duration) / duration : 0;
+  //     }
+
+  //     // Sync timeScale to the paused state
+  //     if (entry) {
+  //       entry.alpha = t.alpha;
+  //       entry.timeScale = sourceT.paused ? 0 : t.speed;
+  //     }
+
+  //     const shouldUpdateProgress = isDraggingId !== t.id;
+
+  //     const pauseChanged = t.paused !== sourceT.paused;
+  //     const nameChanged = t.name !== currentName;
+  //     const progressChanged =
+  //       shouldUpdateProgress && Math.abs(t.progress - currentProgress) > 0.01;
+
+  //     if (pauseChanged || nameChanged || progressChanged) {
+  //       changed = true;
+  //       return {
+  //         ...t,
+  //         paused: sourceT.paused,
+  //         name: currentName,
+  //         progress: shouldUpdateProgress ? currentProgress : t.progress,
+  //       };
+  //     }
+  //     return t;
+  //   });
+
+  //   if (changed) {
+  //     tracks = newTracks;
+  //   }
+  // }
 
   function syncWithSpine() {
     if (!player?.state || !player._mixerState) return;
 
-    let changed = false;
-
-    // 1. Get the latest source of truth from the player object
     const sourceTracks = player._mixerState as Track[];
 
-    const newTracks = sourceTracks.map((sourceT, index) => {
-      // Get the existing local track state if it exists
-      const t = tracks[index] || sourceT;
+    const newTracks = sourceTracks.map((sourceT) => {
+      const t = tracks.find((track) => track.id === sourceT.id) ?? sourceT;
 
-      const entry = player.state.getCurrent(t.id);
+      const entry = player.state.getCurrent(sourceT.id);
       const currentName = entry?.animation?.name || "Empty";
 
       let currentProgress = 0;
-      if (entry && entry.animation) {
+
+      if (entry?.animation) {
         const duration = entry.animation.duration;
         currentProgress =
           duration > 0 ? (entry.trackTime % duration) / duration : 0;
       }
 
-      // Sync timeScale to the paused state
       if (entry) {
-        entry.alpha = t.alpha;
-        entry.timeScale = sourceT.paused ? 0 : t.speed;
+        entry.alpha = sourceT.alpha;
+        entry.timeScale = sourceT.paused ? 0 : sourceT.speed;
       }
 
-      const shouldUpdateProgress = isDraggingId !== t.id;
+      const shouldUpdateProgress = isDraggingId !== sourceT.id;
 
-      const pauseChanged = t.paused !== sourceT.paused;
-      const nameChanged = t.name !== currentName;
-      const progressChanged =
-        shouldUpdateProgress && Math.abs(t.progress - currentProgress) > 0.01;
+      const changed =
+        t.speed !== sourceT.speed ||
+        t.alpha !== sourceT.alpha ||
+        t.paused !== sourceT.paused ||
+        t.expanded !== sourceT.expanded ||
+        t.name !== currentName ||
+        (shouldUpdateProgress && Math.abs(t.progress - currentProgress) > 0.01);
 
-      if (pauseChanged || nameChanged || progressChanged) {
-        changed = true;
-        return {
-          ...t,
-          paused: sourceT.paused,
-          name: currentName,
-          progress: shouldUpdateProgress ? currentProgress : t.progress,
-        };
-      }
-      return t;
+      return changed
+        ? {
+            ...sourceT,
+            name: currentName,
+            progress: shouldUpdateProgress ? currentProgress : t.progress,
+          }
+        : t;
     });
 
-    if (changed) {
+    if (
+      newTracks.length !== tracks.length ||
+      newTracks.some((t, i) => t !== tracks[i])
+    ) {
       tracks = newTracks;
     }
   }
+
   function saveMixerState() {
     if (!$activeCharacter) return;
     characterSettings.update((all) => ({
@@ -185,7 +246,7 @@
     // player._mixerState = tracks;
     // focusedTrackId = newId;
     player._mixerState = tracks;
-    focusedTrackId = newId;
+    focusedTrackId.set(newId);
     saveMixerState();
   }
 
@@ -194,7 +255,7 @@
     tracks = tracks.filter((t) => t.id !== id);
     player._mixerState = tracks;
     if (player?.state) player.state.setEmptyAnimation(id, 0);
-    if (focusedTrackId === id) focusedTrackId = 0;
+    if ($focusedTrackId === id) focusedTrackId.set(0);
     saveMixerState();
   }
 
@@ -203,15 +264,25 @@
       t.id === id ? { ...t, expanded: !t.expanded } : t,
     );
     player._mixerState = tracks;
-    focusedTrackId = id;
+    focusedTrackId.set(id);
   }
+
+  //   function toggleTrackExpand(id: number) {
+  //   const updatedTracks = (player._mixerState as Track[]).map((t) =>
+  //     t.id === id ? { ...t, expanded: !t.expanded } : t,
+  //   );
+
+  //   player._mixerState = updatedTracks;
+  //   tracks = updatedTracks;
+  //   focusedTrackId.set(id);
+  // }
 
   function focusTrack(id: number) {
     // tracks = tracks.map((t) =>
     //   t.id === id ? { ...t, expanded: !t.expanded } : t,
     // );
     // player._mixerState = tracks;
-    focusedTrackId = id;
+    focusedTrackId.set(id);
     // selectedTrackId.set(id);
   }
 
@@ -237,6 +308,24 @@
     }
   }
 
+  function handleSpeedChange(id: number, speed: number) {
+    const updatedTracks = (player._mixerState as Track[]).map((t) =>
+      t.id === id ? { ...t, speed } : t,
+    );
+
+    player._mixerState = updatedTracks;
+    tracks = updatedTracks;
+
+    const entry = player.state?.getCurrent(id);
+    if (entry) {
+      entry.timeScale = updatedTracks.find((t) => t.id === id)!.paused
+        ? 0
+        : speed;
+    }
+
+    saveMixerState();
+  }
+
   // PMA Toggle Logic
   function togglePMA() {
     if (!player) return;
@@ -253,11 +342,16 @@
 
   <div class="mixer-list custom-scrollbar">
     {#each tracks as track (track.id)}
-      <div class="track-item" class:focused={focusedTrackId === track.id}>
+      <div class="track-item" class:focused={$focusedTrackId === track.id}>
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <div
           class="track-item-header"
           on:click={() => focusTrack(track.id)}
+          on:dblclick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleTrackExpand(track.id);
+          }}
         >
           <div class="track-meta">
             <span class="track-number">T{track.id}</span>
@@ -273,11 +367,18 @@
                 −
               </button>
             {/if}
-            <div
-              class="icon-mask chevron"
-              style="--icon: url({track.expanded ? ChevronDown : ChevronLeft})"
-              on:click={() => toggleTrackExpand(track.id)}
-            ></div>
+            <button
+              class="chevron-hitbox"
+              on:click|stopPropagation={() => toggleTrackExpand(track.id)}
+              aria-label={track.expanded ? "Collapse track" : "Expand track"}
+            >
+              <div
+                class="icon-mask chevron"
+                style="--icon: url({track.expanded
+                  ? ChevronDown
+                  : ChevronLeft})"
+              ></div>
+            </button>
           </div>
         </div>
 
@@ -322,11 +423,15 @@
                   <input
                     type="range"
                     class="elegant-slider"
-                    on:change={saveMixerState}
                     min="0"
                     max="2"
                     step="0.1"
-                    bind:value={track.speed}
+                    value={track.speed}
+                    on:input={(e) =>
+                      handleSpeedChange(
+                        track.id,
+                        Number(e.currentTarget.value),
+                      )}
                   />
                   <div class="mid-tick"></div>
                 </div>
@@ -370,15 +475,44 @@
     mask-image: var(--icon);
     transition: background-color 0.2s;
   }
+
   .focused .icon-mask {
     background-color: var(--accent);
   }
+
   .chevron {
-    width: 15px;
-    height: 15px;
+    width: 18px;
+    height: 18px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    box-sizing: content-box;
     opacity: 0.8;
+    cursor: pointer;
+    background-origin: content-box;
   }
 
+  .chevron-hitbox {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 25px;
+    height: 25px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .chevron-hitbox::before {
+    content: "";
+    position: absolute;
+    inset: -5px;
+  }
+
+  .chevron-hitbox:hover .chevron {
+    background-color: var(--accent-2);
+  }
 
   .track-mixer-container {
     display: flex;
@@ -423,14 +557,18 @@
   }
 
   .track-item {
-    background: rgba(255, 255, 255, 0.02);
+    /* background: rgba(255, 255, 255, 0.02); */
+    background: rgba(26, 26, 26, 0.2);
     border-radius: 12px;
     border: 1px solid transparent;
     margin-bottom: 8px;
   }
+
   .track-item.focused {
-    border-color: rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(26, 26, 26, 0.35);
+
+    /* border-top: 1px solid rgb(from var(--accent) r g b / 0.2); */
   }
 
   .track-item-header {
@@ -445,6 +583,7 @@
     align-items: center;
     gap: 12px;
   }
+
   .track-number {
     color: var(--accent);
     font-family: "Rail";
@@ -452,6 +591,7 @@
     font-size: 10px;
     width: 20px;
   }
+
   .track-anim-name {
     font-family: "MarklMono";
     font-size: 10px;
@@ -474,7 +614,9 @@
     font-size: 16px;
     padding: 0 4px;
     opacity: 0.6;
+    font-weight: 800;
   }
+
   .delete-track-btn:hover {
     opacity: 1;
   }
@@ -492,6 +634,7 @@
     align-items: center;
     gap: 12px;
   }
+
   .row-label {
     font-family: "Rail";
     font-size: 8px;

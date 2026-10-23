@@ -1,6 +1,7 @@
 package remote
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
@@ -16,18 +17,40 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// func (h *RemoteHandler) CheckSourceHealth(url string) bool {
-// 	resp, err := h.client.Head(url)
-//
-// 	if err != nil || resp.StatusCode >= 400 {
-// 		resp, err = h.client.Get(url)
-// 		if err != nil || resp.StatusCode >= 400 {
-// 			return false
-// 		}
-// 	}
-// 	defer resp.Body.Close()
-// 	return true
-// }
+type ProgressWriter struct {
+	Writer io.Writer
+	OnProgress func(bytesWritten int)
+}
+
+func (pw *ProgressWriter) Write(p []byte) (int, error) {
+	n, err := pw.Writer.Write(p)
+	if n > 0 && pw.OnProgress != nil {
+		pw.OnProgress(n)
+	}
+	return n, err
+}
+
+func (h *RemoteHandler) PauseDownload(assetID string) {
+	if cancelVal, ok := h.activeDownloads.Load(assetID); ok {
+		cancel := cancelVal.(context.CancelFunc)
+		cancel()
+		h.activeDownloads.Delete(assetID)
+	}
+}
+
+func (h *RemoteHandler) CancelDownload(sourceName string, assetID string) error {
+	h.PauseDownload(assetID)
+
+	err := h.RemoveAssetCache(sourceName, assetID)
+
+	wailsRuntime.EventsEmit(h.ctx, "remote:download_progress", DownloadProgress{
+		AssetID:    assetID,
+		SourceName: sourceName,
+		Status:     "canceled",
+	})
+
+	return err
+}
 
 func (h *RemoteHandler) CheckSourceHealth(url string) bool {
     checkURL := url
@@ -355,7 +378,7 @@ func (h *RemoteHandler) applyMetadata(assets []RemoteAsset, metaURL string) {
 	}
 }
 
-func (h *RemoteHandler) DownloadRemoteAsset(asset RemoteAsset) error {
+func (h *RemoteHandler) _DownloadRemoteAsset(asset RemoteAsset) error {
 
 	cacheDir, err := h.GetCachePath()
 	if err != nil {
@@ -386,6 +409,188 @@ func (h *RemoteHandler) DownloadRemoteAsset(asset RemoteAsset) error {
 		}
 	}
 	return nil
+}
+
+func (h *RemoteHandler) DownloadRemoteAsset(asset RemoteAsset) error {
+	cacheDir, err := h.GetCachePath()
+	if err != nil {
+		return err
+	}
+
+	localAssetDir := filepath.Join(cacheDir, asset.SourceName, asset.ID)
+	if err := os.MkdirAll(localAssetDir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	// 1. Context setup for Pause/Cancel support
+	ctx, cancel := context.WithCancel(h.ctx)
+	h.activeDownloads.Store(asset.ID, cancel)
+	defer h.activeDownloads.Delete(asset.ID)
+
+	// 2. Initialize file progress array
+	fileProgressList := make([]FileProgress, len(asset.Files))
+	for i, name := range asset.Files {
+		localPath := filepath.Join(localAssetDir, name)
+		
+		// If file already fully downloaded from previous session
+		if info, err := os.Stat(localPath); err == nil {
+			fileProgressList[i] = FileProgress{
+				FileName:     name,
+				BytesWritten: info.Size(),
+				TotalBytes:   info.Size(),
+				Percentage:   100.0,
+				Status:       "complete",
+			}
+		} else {
+			fileProgressList[i] = FileProgress{
+				FileName: name,
+				Status:   "pending",
+			}
+		}
+	}
+
+	// Helper to calculate totals and emit event to frontend
+	emitState := func(status string, errMsg string) {
+		var folderBytesWritten int64
+		var folderTotalBytes int64
+		completedCount := 0
+
+		for _, f := range fileProgressList {
+			folderBytesWritten += f.BytesWritten
+			folderTotalBytes += f.TotalBytes
+			if f.Status == "complete" {
+				completedCount++
+			}
+		}
+
+		var overallPct float64
+		if folderTotalBytes > 0 {
+			overallPct = (float64(folderBytesWritten) / float64(folderTotalBytes)) * 100
+		} else if len(asset.Files) > 0 {
+			overallPct = (float64(completedCount) / float64(len(asset.Files))) * 100
+		}
+
+		progress := DownloadProgress{
+			AssetID:     	asset.ID,
+			SourceName:  	asset.SourceName,
+			DisplayName: 	asset.DisplayName,
+			Source: 		asset,
+			BytesWritten:	folderBytesWritten,
+			TotalBytes:  	folderTotalBytes,
+			Percentage:  	overallPct,
+			Completed:   	completedCount,
+			TotalFiles:  	len(asset.Files),
+			Status:      	status,
+			ErrorMessage:	errMsg,
+			Files:       	fileProgressList,
+		}
+
+		wailsRuntime.EventsEmit(h.ctx, "remote:download_progress", progress)
+	}
+
+	// Initial emission (0% / Pending)
+	emitState("downloading", "")
+
+	// 3. Loop and download files
+	for i, fileName := range asset.Files {
+		// Stop if user triggered Cancel/Pause
+		select {
+		case <-ctx.Done():
+			emitState("paused", "Download paused")
+			return ctx.Err()
+		default:
+		}
+
+		// Skip already completed files
+		if fileProgressList[i].Status == "complete" {
+			continue
+		}
+
+		downloadURL := fmt.Sprintf("%s/%s/%s",
+			strings.TrimSuffix(asset.RemoteRoot, "/"),
+			strings.Trim(asset.BaseURL, "/"),
+			fileName)
+
+		localPath := filepath.Join(localAssetDir, fileName)
+
+		fileProgressList[i].Status = "downloading"
+		emitState("downloading", "")
+
+		err := h.performDownloadWithContext(ctx, downloadURL, localPath, func(written int64, total int64) {
+			fileProgressList[i].BytesWritten = written
+			fileProgressList[i].TotalBytes = total
+			if total > 0 {
+				fileProgressList[i].Percentage = (float64(written) / float64(total)) * 100
+			}
+			emitState("downloading", "")
+		})
+
+		if err != nil {
+			if ctx.Err() != nil {
+				emitState("paused", "")
+				return ctx.Err()
+			}
+			fileProgressList[i].Status = "error"
+			fileProgressList[i].ErrorMessage = err.Error()
+			emitState("error", err.Error())
+			return err
+		}
+
+		fileProgressList[i].Status = "complete"
+		fileProgressList[i].Percentage = 100.0
+		emitState("downloading", "")
+	}
+
+	// Final complete event
+	emitState("complete", "")
+	return nil
+}
+
+func (h *RemoteHandler) performDownloadWithContext(
+	ctx context.Context,
+	githubUrl string,
+	dest string,
+	onProgress func(written int64, total int64),
+) error {
+	finalUrl := h.convertToJsDelivr(githubUrl)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", finalUrl, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("User-Agent", "Motiv2D-Asset-Bridge")
+
+	resp, err := h.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("cdn connection failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("cdn error %d: check if repo is public", resp.StatusCode)
+	}
+
+	totalBytes := resp.ContentLength
+
+	out, err := os.Create(dest)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	var currentWritten int64
+	pw := &ProgressWriter{
+		Writer: out,
+		OnProgress: func(n int) {
+			currentWritten += int64(n)
+			if onProgress != nil {
+				onProgress(currentWritten, totalBytes)
+			}
+		},
+	}
+
+	_, err = io.Copy(pw, resp.Body)
+	return err
 }
 
 func (h *RemoteHandler) performDownload(githubUrl string, dest string) error {

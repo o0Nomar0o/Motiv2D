@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { backgroundBlur, blurType } from "../../stores/appStore";
+  import { backgroundBlur, blurType } from "../../../stores/appStore";
 
   const types = [
     { id: "none", label: "NONE" },

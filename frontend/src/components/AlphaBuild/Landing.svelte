@@ -72,7 +72,7 @@
     <section class="hero-section">
       <div class="top-meta mono" in:fly={{ y: -20, duration: 800 }}>
         <div class="meta-item">PROJECT: MOTIV.2D</div>
-        <div class="meta-item">STATUS: STABLE</div>
+        <div class="meta-item">STATUS: BETA</div>
         {#if metadata}
           <div class="meta-item">
             BUILD: {metadata.buildDate}
@@ -91,7 +91,7 @@
         <div class="sub-hero">
           <p class="elegant-text">
             <span class="italic">Spine2D</span> <br />
-            <span class="italic dimmed">+ Live2D Cubism (Soon)</span>
+            <span class="italic dimmed">& Live2D Cubism</span>
           </p>
 
           <div class="hero-action">
@@ -122,10 +122,10 @@
         <div class="bento-card large">
           <div class="card-header">
             <span class="mono">MOD_01</span>
-            <span class="tag stable">v1.0 STABLE</span>
+            <span class="tag stable">v1.0.4 BETA</span>
           </div>
           <h2>SPINE<br />VIEWER</h2>
-          <p>Complete integration for Spine 3.8 to 4.1.</p>
+          <p>Complete integration for Spine 3.8 to 4.2.</p>
         </div>
 
         <div class="bento-card">

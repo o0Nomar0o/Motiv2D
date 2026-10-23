@@ -6,20 +6,20 @@
     DownloadRemoteAsset,
     FinalizeAsset,
     RefreshSource,
-  } from "../../../wailsjs/go/remote/RemoteHandler";
+  } from "../../../../wailsjs/go/remote/RemoteHandler";
   import {
     characterLibrary,
     activeCharacter,
     remoteSources,
-  } from "../../stores/appStore";
+  } from "../../../stores/appStore";
 
-  import iconUser from "../../assets/images/user.svg";
-  import iconDownload from "../../assets/images/download.svg";
-  import iconCheck from "../../assets/images/check.svg";
-  import iconGrid from "../../assets/images/grid.svg";
-  import iconList from "../../assets/images/list.svg";
-  import iconRefresh from "../../assets/images/refresh.svg";
-  import { CheckSourceHealth } from "../../../wailsjs/go/remote/RemoteHandler";
+  import iconUser from "../../../assets/images/user.svg";
+  import iconDownload from "../../../assets/images/download.svg";
+  import iconCheck from "../../../assets/images/check.svg";
+  import iconGrid from "../../../assets/images/grid.svg";
+  import iconList from "../../../assets/images/list.svg";
+  import iconRefresh from "../../../assets/images/refresh.svg";
+  import { CheckSourceHealth } from "../../../../wailsjs/go/remote/RemoteHandler";
 
   export let source = null;
   const dispatch = createEventDispatcher();

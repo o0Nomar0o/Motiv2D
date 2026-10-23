@@ -6,15 +6,22 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
 
 type RemoteHandler struct {
-	ctx     context.Context
-	client  *http.Client
-	storage *ConfigManager 
+	ctx     		context.Context
+	client  		*http.Client
+	storage 		*ConfigManager 
+	activeDownloads sync.Map
 }
+
+type Manifest struct {
+	Assets []RemoteAsset `json:"assets"`
+}
+
 
 func NewRemoteHandler() *RemoteHandler {
 	store, _ := NewConfigManager()
@@ -78,10 +85,6 @@ func (h *RemoteHandler) DeleteRemote(id string) error {
 	return h.storage.SaveRemotes(updated)
 }
 
-
-type Manifest struct {
-	Assets []RemoteAsset `json:"assets"`
-}
 
 func (h *RemoteHandler) GetCacheFolder() string {
     return h.storage.GetCacheFolder()

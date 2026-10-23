@@ -17,6 +17,7 @@ export class Spine38Player {
   private skeletonRenderer: any;
   private mvp: any;
   public cameraManager: CameraManager;
+  private currentRotation: number = 0;
   private savedSettings: CharacterSessionState | null = null;
   gl: WebGLRenderingContext | WebGL2RenderingContext;
 
@@ -341,6 +342,10 @@ export class Spine38Player {
         new this.spine.AnimationStateData(skeletonData),
       );
 
+      if (this.savedSettings && typeof this.savedSettings.model_rotation === "number") {
+        this.setRotation(this.savedSettings.model_rotation);
+      }
+      
       this.skeleton.setToSetupPose();
 
       if (
@@ -457,6 +462,28 @@ export class Spine38Player {
   public getSlotAt(canvasX: number, canvasY: number): any | null {
     const hits = this.getAllSlotsAt(canvasX, canvasY);
     return hits.length > 0 ? hits[0] : null;
+  }
+
+  // public setRotation(degrees: number) {
+  //   this.currentRotation = degrees;
+  //   if (this.skeleton && this.skeleton.getRootBone()) {
+  //     this.skeleton.getRootBone().rotation = degrees;
+  //     // this.skeleton.updateWorldTransform(this.getPhysicsMode());
+  //   }
+  // }
+  
+   public setRotation(degrees: number) {
+    this.currentRotation = ((-degrees % 360) + 360) % 360;
+
+    if (this.skeleton && this.skeleton.getRootBone()) {
+      const angle =
+        this.currentRotation > 180
+          ? this.currentRotation - 360
+          : this.currentRotation;
+
+      this.skeleton.getRootBone().rotation = angle;
+  
+    }
   }
 
   private updateCamera() {

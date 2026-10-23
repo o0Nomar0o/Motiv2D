@@ -79,9 +79,27 @@ export class Live2DController {
     const internal = this.model.internalModel as any;
     const core = internal.coreModel;
 
-    const drawableIds = internal.getDrawableIDs() || [];
-    const partIds = core?._partIds || [];
-    const drawablePartIndices = internal.drawablePartIndices || core?._drawablePartIndices || [];
+    // Hook parameter overrides right before Cubism updates its internal frame logic
+    internal.on("beforeModelUpdate", () => {
+      if (!this.model) return;
+      const c = (this.model.internalModel as any).coreModel;
+      if (!c) return;
+
+      Object.entries(this.parameterOverrides).forEach(([id, value]) => {
+        const pIndex = c.getParameterIndex ? c.getParameterIndex(id) : (c._parameterIds?.indexOf(id) ?? -1);
+        if (pIndex !== -1 && c.setParameterValueByIndex) {
+          c.setParameterValueByIndex(pIndex, value);
+        } else if (c.setParameterValueById) {
+          c.setParameterValueById(id, value);
+        }
+      });
+    });
+
+    const drawableIds = internal.getDrawableIDs ? internal.getDrawableIDs() : (internal._drawableIds || []);
+    const partIds = core?.getPartIds ? core.getPartIds() : (core?._partIds || []);
+    const drawablePartIndices = core?.getDrawablePartIndices 
+      ? core.getDrawablePartIndices() 
+      : (internal.drawablePartIndices || core?._drawablePartIndices || []);
 
     drawableIds.forEach((id: string, index: number) => {
       this.drawableIndexMap.set(id, index);
@@ -109,15 +127,6 @@ export class Live2DController {
       this.parameterOverrides = { ...settings.parameters };
     }
 
-     const internals = this.model.internalModel as any;
-    const cores = internals.coreModel;
-    
-    const drawablePartIndicess = 
-      internals.drawablePartIndices || 
-      cores._drawablePartIndices || 
-      (cores.getDrawablePartIndices ? cores.getDrawablePartIndices() : null) ||
-      cores.drawablePartIndices;
-
     this.camX = this.cameraManager.x;
     this.camY = this.cameraManager.y;
     this.camZoom = this.cameraManager.zoom;
@@ -136,14 +145,6 @@ export class Live2DController {
 
     const internal = this.model.internalModel as any;
     const core = internal.coreModel as any;
-
-    Object.entries(this.parameterOverrides).forEach(([id, value]) => {
-      if (core.setParameterValueById) {
-        core.setParameterValueById(id, value);
-      } else if (core.setParamValue) {
-        core.setParamValue(id, value);
-      }
-    });
 
     if (internal.drawables) {
       this.drawableIndexMap.forEach((index, id) => {
@@ -169,16 +170,22 @@ export class Live2DController {
     if (!this.model) return;
     const internal = this.model.internalModel as any;
     const core = internal.coreModel;
-    const partIds = core?._partIds || [];
+
+    const partIds = core.getPartIds ? core.getPartIds() : (core._partIds || []);
     const pIndex = partIds.indexOf(partId);
 
     if (pIndex !== -1) {
-      if (core._partOpacities) core._partOpacities[pIndex] = visible ? 1 : 0;
+      if (core.setPartOpacityByIndex) {
+        core.setPartOpacityByIndex(pIndex, visible ? 1 : 0);
+      } else if (core._partOpacities) {
+        core._partOpacities[pIndex] = visible ? 1 : 0;
+      }
 
-      const dpi = internal.drawablePartIndices || core._drawablePartIndices || 
-                  (core.getDrawablePartIndices ? core.getDrawablePartIndices() : null);
-      
-      const dIds = internal.getDrawableIDs() || [];
+      const dpi = core.getDrawablePartIndices 
+        ? core.getDrawablePartIndices() 
+        : (internal.drawablePartIndices || core._drawablePartIndices);
+
+      const dIds = internal.getDrawableIDs ? internal.getDrawableIDs() : (internal._drawableIds || []);
 
       if (dpi) {
         dIds.forEach((id: string, i: number) => {
@@ -186,9 +193,15 @@ export class Live2DController {
             visible ? this.hiddenDrawables.delete(id) : this.hiddenDrawables.add(id);
           }
         });
-      } else {
-        console.error("❌ Critical: Could not find drawablePartIndices. Individual mesh sync failed.");
       }
+    }
+  }
+
+  //TO-DO
+  public setZoom(zoom: number) {
+    if (this.cameraManager) {
+      this.cameraManager.zoom = zoom;
+      // this.updateCamera();
     }
   }
 
@@ -205,15 +218,32 @@ export class Live2DController {
 
     this.model.interactive = true;
     this.model.on("pointerdown", (event: any) => {
-      const globalPoint = event.data.global;
-      const children = this.model!.children;
-      let hitId: string | null = null;
+      if (!this.model) return;
 
-      for (let i = children.length - 1; i >= 0; i--) {
-        const child = children[i] as any;
-        if (child.visible && child.renderable && child.containsPoint(globalPoint)) {
-          hitId = child.name;
-          break;
+      const globalPoint = event.data.global;
+      const internal = this.model.internalModel as any;
+      const drawables = internal.drawables;
+
+      if (!drawables || drawables.length === 0) return;
+
+      let hitId: string | null = null;
+      const drawableIds = internal.getDrawableIDs ? internal.getDrawableIDs() : Array.from(this.drawableIndexMap.keys());
+
+      // Iterate backwards through drawables to respect draw order (front-to-back)
+      for (let i = drawables.length - 1; i >= 0; i--) {
+        const mesh = drawables[i];
+        const id = drawableIds[i];
+
+        // Skip hidden or non-renderable meshes
+        if (!mesh || !mesh.visible || !mesh.renderable || this.hiddenDrawables.has(id)) {
+          continue;
+        }
+
+        // Test if global mouse click falls within this specific mesh's global bounds
+        const bounds = mesh.getBounds();
+        if (bounds.contains(globalPoint.x, globalPoint.y)) {
+          hitId = id;
+          break; // Stop at topmost visible mesh
         }
       }
 
@@ -223,7 +253,7 @@ export class Live2DController {
         this.startHighlightLoop(hitId);
         setTimeout(() => this.stopHighlightLoop(), 2000);
       } else {
-        console.log("Missed! Try clicking exactly on a line or color.");
+        console.log("Missed! Try clicking directly on a visible mesh.");
       }
     });
   }

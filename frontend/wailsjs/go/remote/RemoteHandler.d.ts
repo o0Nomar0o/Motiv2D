@@ -4,6 +4,8 @@ import {remote} from '../models';
 import {common} from '../models';
 import {context} from '../models';
 
+export function CancelDownload(arg1:string,arg2:string):Promise<void>;
+
 export function CheckSourceHealth(arg1:string):Promise<boolean>;
 
 export function ClearAllCache():Promise<void>;
@@ -23,6 +25,8 @@ export function GetCachePath():Promise<string>;
 export function GetCacheSize():Promise<string>;
 
 export function GetRemotes():Promise<Array<remote.RemoteSource>>;
+
+export function PauseDownload(arg1:string):Promise<void>;
 
 export function RefreshSource(arg1:string,arg2:Array<string>):Promise<void>;
 

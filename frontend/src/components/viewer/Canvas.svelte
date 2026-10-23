@@ -12,21 +12,24 @@
     backgroundOpacity,
     blurType,
     backgroundBlur,
-
     activeLive2DCharacter,
-    live2dSettings, 
+    live2dSettings,
     live2dUpdateSignal,
     isLive2D,
+    updateCharacterRotation,
+    focusedTrackId,
   } from "../../stores/appStore";
   import { loadSpineRuntime } from "../../lib/SpineController";
   import { Spine38Player } from "../../lib/Spine38Player";
   import { Spine4xPlayer } from "../../lib/Spine4xPlayer";
-  import { Live2DController } from "../../lib/Live2DController";
+  import { Spine42Player } from "../../lib/Spine42Player";
+  import { Live2DController } from "../../lib/Live2DPlayer";
   import * as PIXI from "pixi.js";
-
+  import { get } from "svelte/store";
 
   let canvas: HTMLCanvasElement;
-  let currentPlayer: Spine38Player | Spine4xPlayer | null = null;
+  let currentPlayer: Spine38Player | Spine4xPlayer | Spine42Player | null =
+    null;
   let currentLoadId = 0;
   let lastLoadedId = "";
   let canvasReady = false;
@@ -68,6 +71,7 @@
     const loadId = ++currentLoadId;
     const versionStr = String(asset.version);
     const isV3 = versionStr.includes("3.8");
+    const isV42 = versionStr.startsWith("4.2");
 
     if (currentPlayer) {
       currentPlayer.destroy();
@@ -85,6 +89,9 @@
       if (isV3) {
         if (!canvas38) return;
         currentPlayer = new Spine38Player(spine, canvas38, handleCameraUpdate);
+      } else if (isV42) {
+        if (!canvas4x) return;
+        currentPlayer = new Spine42Player(spine, canvas4x, handleCameraUpdate);
       } else {
         if (!canvas4x) return;
         currentPlayer = new Spine4xPlayer(spine, canvas4x, handleCameraUpdate);
@@ -100,6 +107,23 @@
       if (settings.currentSkin && settings.currentSkin !== "default") {
         currentPlayer.skeleton.setSkinByName(settings.currentSkin);
         currentPlayer.skeleton.setSlotsToSetupPose();
+      }
+
+      //Roatation
+      if (
+        typeof settings.model_rotation === "number" &&
+        "setRotation" in currentPlayer
+      ) {
+        (currentPlayer as any).setRotation(settings.model_rotation);
+      }
+
+      if (
+        typeof (settings as any).camera_rotation === "number" &&
+        "setCanvasRotation" in currentPlayer
+      ) {
+        (currentPlayer as any).setCanvasRotation(
+          (settings as any).camera_rotation,
+        );
       }
 
       //Restore Visibility
@@ -160,13 +184,13 @@
   // }
 
   export function getPlayer() {
-  // If we are in Live2D mode, return that controller
-  if (activeVersion === "live2d") {
-    return live2dPlayer;
+    // If we are in Live2D mode, return that controller
+    if (activeVersion === "live2d") {
+      return live2dPlayer;
+    }
+    // Otherwise return the Spine player
+    return currentPlayer;
   }
-  // Otherwise return the Spine player
-  return currentPlayer;
-}
 
   $: if (!$activeCharacter && currentPlayer) {
     //Kill the renderer when character is removed
@@ -192,7 +216,8 @@
     if (!currentPlayer || !(currentPlayer as any)._mixerState) return;
 
     const mixer = (currentPlayer as any)._mixerState;
-    const track = mixer.find((t: any) => t.id === 0);
+    const id = get(focusedTrackId);
+    const track = mixer.find((t: any) => t.id === id);
 
     if (track) {
       track.paused = !track.paused;
@@ -205,6 +230,7 @@
           entry.timeScale = track.paused ? 0 : track.speed;
         }
       }
+
       saveCurrentMixerState();
     }
   }
@@ -212,6 +238,74 @@
   export function centerCharacter() {
     if (currentPlayer) {
       currentPlayer.centerSkeleton();
+    }
+  }
+
+  // export function handleRotationChange(degrees: number) {
+  //   if (currentPlayer && "setRotation" in currentPlayer) {
+  //     (currentPlayer as any).setRotation(degrees);
+  //   }
+
+  //   if ($activeCharacter) {
+  //     updateCharacterRotation($activeCharacter.id, degrees);
+  //   }
+  // }
+  export function handleZoomChange(zoomPercent: number) {
+    const zoomFactor = zoomPercent / 100;
+
+    if (currentPlayer && typeof (currentPlayer as any).setZoom === "function") {
+      (currentPlayer as any).setZoom(zoomFactor);
+    } else if (currentPlayer && currentPlayer.cameraManager) {
+      currentPlayer.cameraManager.zoom = zoomFactor;
+      // currentPlayer.updateCamera();
+    }
+
+    if (activeVersion === "live2d" && live2dPlayer) {
+      if (typeof live2dPlayer.setZoom === "function") {
+        live2dPlayer.setZoom(zoomFactor);
+      }
+    }
+
+    if ($activeCharacter) {
+      characterSettings.update((all) => ({
+        ...all,
+        [$activeCharacter.id]: {
+          ...all[$activeCharacter.id],
+          zoom: zoomFactor,
+        },
+      }));
+    }
+  }
+
+  // ROTATION
+  export function handleCanvasRotationChange(degrees: number) {
+    if (currentPlayer && "setCanvasRotation" in currentPlayer) {
+      (currentPlayer as any).setCanvasRotation(degrees);
+    }
+
+    if ($activeCharacter) {
+      updateCharacterRotation($activeCharacter.id, degrees, "canvas");
+    }
+  }
+
+  export function handleModelRotationChange(degrees: number) {
+    if (currentPlayer && "setRotation" in currentPlayer) {
+      (currentPlayer as any).setRotation(degrees);
+    }
+
+    if ($activeCharacter) {
+      updateCharacterRotation($activeCharacter.id, degrees, "model");
+    }
+  }
+
+  export function handleRotationChange(
+    degrees: number,
+    type: "canvas" | "model" = "canvas",
+  ) {
+    if (type === "model") {
+      handleModelRotationChange(degrees);
+    } else {
+      handleCanvasRotationChange(degrees);
     }
   }
 
@@ -272,7 +366,11 @@
   })();
 
   //  == Live2D ==
-  $: if ($activeLive2DCharacter && canvasLive2D && $activeLive2DCharacter.id !== lastLoadedId) {
+  $: if (
+    $activeLive2DCharacter &&
+    canvasLive2D &&
+    $activeLive2DCharacter.id !== lastLoadedId
+  ) {
     lastLoadedId = $activeLive2DCharacter.id;
     initLive2DPlayer($activeLive2DCharacter);
   }
@@ -287,19 +385,23 @@
         backgroundAlpha: 0,
         antialias: true,
         autoStart: true,
-        resizeTo: canvasLive2D.parentElement!
+        resizeTo: canvasLive2D.parentElement!,
       });
     }
 
     if (live2dPlayer) live2dPlayer.destroy();
     live2dPlayer = new Live2DController(pixiApp, canvasLive2D);
 
-    const settings = $live2dSettings[asset.id] || { camX: 0.5, camY: 0.5, zoom: 1 };
-    
+    const settings = $live2dSettings[asset.id] || {
+      camX: 0.5,
+      camY: 0.5,
+      zoom: 1,
+    };
+
     await live2dPlayer.load(asset.modelJsonFile.url, settings as any);
     live2dPlayer.setupHitTest();
     if (loadId === currentLoadId) {
-      live2dUpdateSignal.update(n => n + 1);
+      live2dUpdateSignal.update((n) => n + 1);
     }
   }
 
@@ -310,7 +412,6 @@
     }
     activeVersion = null;
   }
-  
 </script>
 
 <div
@@ -337,8 +438,8 @@
 
   <canvas
     bind:this={canvasLive2D}
+    on:mousedown={handleCanvasClick}
     class:hidden={activeVersion !== "live2d"}
-
   ></canvas>
 </div>
 

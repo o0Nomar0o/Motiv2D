@@ -11,23 +11,24 @@
     live2dSettings,
     getLive2DSettingsFor,
     activeSidebarTab
-  } from "../../stores/appStore";
-  import VisibilityOn from "../../assets/images/visibility-on.svg";
-  import VisibilityOff from "../../assets/images/visibility-off.svg";
-  import VisibilityPreview from "../../assets/images/visibility-preview.svg";
-  import CenterCamera from "../../assets/images/origin.svg";
+  } from "../../../stores/appStore";
+  import VisibilityOn from "../../../assets/images/visibility-on.svg";
+  import VisibilityOff from "../../../assets/images/visibility-off.svg";
+  import VisibilityPreview from "../../../assets/images/visibility-preview.svg";
+  import CenterCamera from "../../../assets/images/origin.svg";
 
   export let player: any; 
 
   let animations: string[] = [];
   let slots: any[] = [];
+  let parameters: Array<{ id: string; value: number; min: number; max: number; defaultValue: number }> = [];
   let groupedSlots: { [key: string]: any[] } = {};
   let searchQuery = "";
   let currentAnimName = "";
   let highlightedSlot: string | null = null;
   let scrollContainer: HTMLElement;
 
-  $: activeTabIndex = $activeSidebarTab === "animations" ? 0 : 1;
+  $: activeTabIndex = $activeSidebarTab === "animations" ? 0 : $activeSidebarTab === "slots" ? 1 : 2;
 
   $: if (player && ($live2dUpdateSignal || $activeLive2DCharacter)) {
     refreshData();
@@ -42,13 +43,14 @@
 
     animations = Object.keys(internal.motionManager?.definitions || {});
     
+    //Drawables / Slots
     const charId = $activeLive2DCharacter?.id;
     const savedVisibility = charId ? ($live2dSettings[charId]?.drawableVisibility || {}) : {};
     
-    const partIds = core._partIds || []; 
-    const partOpacities = core._partOpacities || [];
+    const partIds = core._partIds || (core.getPartIds ? core.getPartIds() : []); 
+    const partOpacities = core._partOpacities || (core.getPartOpacities ? core.getPartOpacities() : []);
 
-    const rawSlots = partIds.map((id, index) => {
+    const rawSlots = partIds.map((id: string, index: number) => {
       let isVisible = savedVisibility[id] !== undefined 
         ? savedVisibility[id] 
         : (partOpacities[index] > 0.5);
@@ -58,15 +60,34 @@
         visible: isVisible,
         isPart: true 
       };
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    }).sort((a: any, b: any) => a.name.localeCompare(b.name));
 
     slots = rawSlots;
 
-    // 4. Grouping Logic (Keep your working grouping code)
-    const tempGroups: { [key: string]: any[] } = {};
-    const MAX_ITEMS = 105;
+    //Parameters Extraction
+    const paramIds = core._parameterIds || (core.getParameterIds ? core.getParameterIds() : []);
+    const paramValues = core._parameterValues || (core.getParameterValues ? core.getParameterValues() : []);
+    const paramMin = core._parameterMinimumValues || (core.getParameterMinimumValues ? core.getParameterMinimumValues() : []);
+    const paramMax = core._parameterMaximumValues || (core.getParameterMaximumValues ? core.getParameterMaximumValues() : []);
+    const paramDefault = core._parameterDefaultValues || (core.getParameterDefaultValues ? core.getParameterDefaultValues() : []);
 
-    rawSlots.forEach((slot) => {
+    const rawParams = [];
+    for (let i = 0; i < paramIds.length; i++) {
+      rawParams.push({
+        id: paramIds[i],
+        value: paramValues[i] ?? 0,
+        min: paramMin[i] ?? 0,
+        max: paramMax[i] ?? 1,
+        defaultValue: paramDefault[i] ?? 0
+      });
+    }
+    parameters = rawParams.sort((a, b) => a.id.localeCompare(b.id));
+
+    //Grouping Logic
+    const tempGroups: { [key: string]: any[] } = {};
+    const MAX_ITEMS = 15;
+
+    rawSlots.forEach((slot: any) => {
       const parts = slot.name.split(/[_\.]/);
       let baseName = parts.length > 1 
         ? parts[0].toUpperCase() 
@@ -98,7 +119,6 @@
   }
 
   function handleVisibilityChange(id: string, isChecked: boolean) {
-
     player.setPartVisibility(id, isChecked);
     highlightedSlot = null;
 
@@ -120,6 +140,19 @@
       if (item) { item.visible = isChecked; break; }
     }
     groupedSlots = { ...groupedSlots };
+  }
+
+  function handleParamChange(id: string, val: number) {
+    const internal = player.model?.internalModel;
+    if (!internal?.coreModel) return;
+
+    const core = internal.coreModel;
+    const index = core.getParameterIndex ? core.getParameterIndex(id) : (core._parameterIds?.indexOf(id) ?? -1);
+
+    if (index !== -1) {
+      core.setParameterValueByIndex(index, val);
+      parameters = parameters.map(p => p.id === id ? { ...p, value: val } : p);
+    }
   }
 
   function toggleGroupVisibility(group: string, visible: boolean) {
@@ -167,11 +200,11 @@
 
   $: filteredAnimations = animations.filter(a => a.toLowerCase().includes(searchQuery.toLowerCase()));
   $: filteredSlots = slots.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  $: filteredParameters = parameters.filter(p => p.id.toLowerCase().includes(searchQuery.toLowerCase()));
   $: if ($activeSidebarTab) searchQuery = "";
 
 </script>
 
-<!-- THE SAME AS SPINESIDEBAR -->
 <div class="sidebar-container liquid-glass" class:collapsed={$leftPanelClp} on:mousedown|stopPropagation>
   <section class="config-wrap">
     <div class="section-header-row glass-header">
@@ -186,15 +219,19 @@
     </div>
   </section>
 
+  <!-- Segmented Control with 3 tabs -->
   <div class="segmented-control">
     <div class="thumb-container">
-      <div class="slider-thumb" style="transform: translateX({activeTabIndex * 100}%);"></div>
+      <div class="slider-thumb" style="width: 33.333%; transform: translateX({activeTabIndex * 100}%);"></div>
     </div>
     <button class="segment-btn" class:active={$activeSidebarTab === 'animations'} on:click={() => $activeSidebarTab = 'animations'}>
         <span>Animations</span>
     </button>
     <button class="segment-btn" class:active={$activeSidebarTab === 'slots'} on:click={() => $activeSidebarTab = 'slots'}>
         <span>Drawables</span>
+    </button>
+    <button class="segment-btn" class:active={$activeSidebarTab === 'parameters'} on:click={() => $activeSidebarTab = 'parameters'}>
+        <span>Params</span>
     </button>
   </div>
 
@@ -231,6 +268,35 @@
                 <span>{anim}</span>
               </button>
             {/each}
+
+          {:else if $activeSidebarTab === 'parameters'}
+            <div class="param-stack">
+              {#each filteredParameters as param (param.id)}
+                <div class="param-card">
+                  <div class="param-header">
+                    <span class="mono-text param-title" title={param.id}>{param.id}</span>
+                    <span class="param-value">{param.value.toFixed(2)}</span>
+                  </div>
+                  <div class="param-control">
+                    <span class="bound-text">{param.min}</span>
+                    <input 
+                      type="range" 
+                      min={param.min} 
+                      max={param.max} 
+                      step="0.01" 
+                      value={param.value}
+                      on:input={(e) => handleParamChange(param.id, parseFloat(e.currentTarget.value))}
+                      class="param-slider"
+                    />
+                    <span class="bound-text">{param.max}</span>
+                    <button class="param-reset" on:click={() => handleParamChange(param.id, param.defaultValue)} title="Reset default">
+                      ↺
+                    </button>
+                  </div>
+                </div>
+              {/each}
+            </div>
+
           {:else}
             {#if searchQuery}
               <div class="search-results-header">
@@ -634,6 +700,7 @@
     /* border-width: 1px 0 1px 0;
     border-style: solid;
     border-color: rgba(255, 255, 255, 0.1); */
+    
   }
 
   .thumb-container {
@@ -1003,6 +1070,78 @@
     height: 2px;
   }
   .custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Parameter tab extra styles */
+  .param-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px;
+  }
+
+  .param-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .param-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+  }
+
+  .param-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 170px;
+  }
+
+  .param-value {
+    font-family: monospace;
+    opacity: 0.8;
+  }
+
+  .param-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .bound-text {
+    font-size: 0.65rem;
+    opacity: 0.4;
+    min-width: 18px;
+    text-align: center;
+  }
+
+  .param-slider {
+    flex: 1;
+    accent-color: var(--accent, #6366f1);
+    height: 4px;
+    cursor: pointer;
+  }
+
+  .param-reset {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 2px 4px;
+    border-radius: 3px;
+  }
+
+  .param-reset:hover {
+    color: #fff;
     background: rgba(255, 255, 255, 0.1);
   }
 </style>

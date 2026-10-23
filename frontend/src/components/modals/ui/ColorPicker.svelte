@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { backgroundColor } from "../../stores/appStore";
+  import { backgroundColor } from "../../../stores/appStore";
 
   let colorInput: HTMLInputElement;
 
