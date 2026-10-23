@@ -679,10 +679,10 @@
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .skin-btn.active {
+  /* .skin-btn.active {
     background: var(--accent);
     color: white;
-  }
+  } */
 
   /* SEGMENTED CONTROL */
   .segmented-control {
@@ -1053,7 +1053,7 @@
     transition: all 0.2s ease;
   }
 
-  .skin-btn:hover {
+  /* .skin-btn:hover {
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
   }
@@ -1063,15 +1063,15 @@
     border-color: var(--accent);
     color: white;
     box-shadow: 0 0 10px rgba(0, 162, 255, 0.3);
-  }
+  } */
 
   /* Custom horizontal scrollbar for the skin grid */
-  .custom-scrollbar-horizontal::-webkit-scrollbar {
+  /* .custom-scrollbar-horizontal::-webkit-scrollbar {
     height: 2px;
   }
   .custom-scrollbar-horizontal::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
-  }
+  } */
 
   /* Parameter tab extra styles */
   .param-stack {
