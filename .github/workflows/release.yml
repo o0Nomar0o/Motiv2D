@@ -1,9 +1,8 @@
 name: Wails Build
-
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
   contents: write
@@ -95,6 +94,10 @@ jobs:
           New-Item -ItemType Directory -Force -Path build/bin/wv2runtime-temp
           expand wv2runtime.cab -F:* build/bin/wv2runtime-temp
 
+          # Get-ChildItem -Path build/bin/wv2runtime-temp/* -Recurse | ForEach-Object {
+          #   Copy-Item -Path $_.FullName -Destination build/bin/wv2runtime -Force
+          # }
+
           $runtimeFolder = Get-ChildItem -Path build/bin/wv2runtime-temp -Directory | Select-Object -First 1
           Copy-Item -Path $runtimeFolder.FullName -Destination build/bin/wv2runtime -Recurse -Force
 
@@ -119,33 +122,16 @@ jobs:
             powershell -Command "Compress-Archive -Path 'build/bin/motiv2d-frameless-bundled.exe','build/bin/wv2runtime' -DestinationPath './motiv2d-windows-frameless-bundled.zip' -Force"
           fi
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-artifacts-${{ matrix.artifact }}
-          path: |
-            *.zip
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download All Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-          merge-multiple: true
-
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          files: artifacts/*.zip
-          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
+          files: |
+            *.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   update-manifest:
-    needs: release
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
