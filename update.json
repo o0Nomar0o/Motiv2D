@@ -3,27 +3,27 @@
   "platforms": {
     "windows_standard_amd64_embed": {
       "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.4/motiv2d-windows-standard.zip",
-      "checksum": "6f41242a4521650675acab45c1cc222a9508fb18bc70cc0f217587e2eebf230d"
+      "checksum": "648a015ea56476b173de33f0fd35ea9631a20dd85830ec8fe7bcd4955ee1e16f"
     },
     "windows_frameless_amd64_embed": {
       "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.4/motiv2d-windows-frameless.zip",
-      "checksum": "1fb27c3175a8f412d4d4f1edd0c6e6cd829afed9673aa1ddb5a4e43c77b31e5e"
+      "checksum": "fade78daabe1766989fb9c1a74ef277cd450f9751ba2d93fcd5336c928e00555"
     },
     "windows_standard_amd64_bundled": {
       "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.4/motiv2d-windows-standard-bundled.zip",
-      "checksum": "39244a4270c9dc58e721485b1de2611da17b762b26a4297bcab5bb1bfda02dc2"
+      "checksum": "3bae122550aa27f9d9e9bacaa34de09cfaf3e069250465f51ce39e31fe319da9"
     },
     "windows_frameless_amd64_bundled": {
       "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.4/motiv2d-windows-frameless-bundled.zip",
-      "checksum": "78adc76465dee8c25395c6694c9e27e6cd3d247102a4673637a6b524d46aee05"
+      "checksum": "425a5876821270e2d5b998659fb9fc6b32e831d48893a87d25fe8bba0ec9342e"
     },
     "darwin_arm64": {
       "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.4/motiv2d-macos-arm64.zip",
-      "checksum": "cdc85967601ed9c07a714459e52abd4d55e98ef2fabb833a06de4b6d9c085f5c"
+      "checksum": "8a646fed0b0f8df29169537fcf8b5083b17c3888d2a1499aecf283d82fb17886"
     },
     "darwin_amd64": {
       "url": "https://github.com/o0Nomar0o/Motiv2D/releases/download/v1.0.4/motiv2d-macos-intel.zip",
-      "checksum": "54e37ea846dbed69fd330ead61b0e66282fb6efe472c1516ea7ef5e8634381bd"
+      "checksum": "63c8a70c995622cc7d81534131a4e655630667c44bdefc5fc1d4978832d62d66"
     }
   }
 }
